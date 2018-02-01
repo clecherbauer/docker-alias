@@ -1,0 +1,17 @@
+version: "3"
+
+volumes:
+  bindfs_mapped_data:
+    driver: lebokus/bindfs:latest
+    driver_opts:
+      sourcePath: "${PWD}"
+      map: "${LOCAL_UID}/0:@${LOCAL_UID}/@0"
+
+services:
+    go-docker:
+      image: golang:latest
+      volumes:
+       - "bindfs_mapped_data:/usr/src/docker-alias"
+      environment:
+       - GOPATH=/usr/src/docker-alias
+      working_dir: "/usr/src/docker-alias"

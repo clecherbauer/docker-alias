@@ -1,0 +1,56 @@
+#/bin/bash
+
+function cd() {
+
+        function findDockerComposeYml() {
+            FILENAME="docker-compose.alias.yml"
+            FOUNDPATH=""
+            CURRENTPATH=$PWD
+            while [[ $CURRENTPATH != / ]];
+            do
+                if [ $(find $CURRENTPATH -maxdepth 1 -mindepth 1 -name "$FILENAME" | wc -l) -eq 0 ]; then
+                    CURRENTPATH="$(realpath -s "$CURRENTPATH"/..)"
+                else
+                    FOUNDPATH="$CURRENTPATH"
+                    break
+                fi
+            done
+
+            echo $FOUNDPATH
+        }
+
+        docker-dotenv() {
+            [ -f .env.dist ] && cat .env.dist > .env
+            [ -f .env ] || touch .env
+            sed -i '/^LOCAL_UID=/d' .env
+            sed -i '/^LOCAL_GID=/d' .env
+            echo "LOCAL_UID=$(id -u)" >> .env
+            echo "LOCAL_GID=$(id -g)" >> .env
+        }
+
+        #check if aliases need to be unloaded
+        OLDALIASYMLPATH=$(findDockerComposeYml)
+        if [ $OLDALIASYMLPATH ]; then
+            while read -r ALIASNAME; do
+                unalias $ALIASNAME 2>/dev/null
+            done < <(docker-alias list-names $OLDALIASYMLPATH)
+        fi
+
+        builtin cd "$@"
+        #check if aliases need to be loaded 
+        NEWALIASYMLPATH=$(findDockerComposeYml)
+
+        export PROJECT_ROOT_PATH=$NEWALIASYMLPATH
+        export LOCAL_UID=$(id -u)
+        export LOCAL_GID=$(id -g)
+
+        if [ $NEWALIASYMLPATH ]; then
+            while read -r ALIASCOMMAND; do
+                alias $ALIASCOMMAND
+            done < <(docker-alias list-commands $NEWALIASYMLPATH)
+        fi
+
+        if [ -f docker-compose.override.yml ]; then
+            docker-dotenv
+        fi
+}

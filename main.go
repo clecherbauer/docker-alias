@@ -7,8 +7,12 @@ import (
     "os"
     "fmt"
     "strings"
-    //github.com/davecgh/go-spew/spew"
+    //"github.com/davecgh/go-spew/spew"
     "sort"
+    "regexp"
+    "path"
+    "os/exec"
+    "bufio"
 )
 
 type Alias struct {
@@ -18,7 +22,7 @@ type Alias struct {
 }
 
 func getAliases() []Alias {
-    path := os.Args[2]
+    path := findDockerComposePath()
     filename := path + "/docker-compose.alias.yml"
     source, err := ioutil.ReadFile(filename)
     yaml, err := simpleyaml.NewYaml(source)
@@ -64,7 +68,7 @@ func getAliases() []Alias {
 
 func findDockerComposeFiles() []string {
     var validFiles []string
-    rootDir := os.Args[2]
+    rootDir := findDockerComposePath()
 
     filePaths,_ := ioutil.ReadDir(rootDir)
 
@@ -79,9 +83,26 @@ func findDockerComposeFiles() []string {
     return validFiles
 }
 
+func findDockerComposePath() string {
+    fileName := "docker-compose.alias.yml"
+    foundPath := ""
+    currentPath, _ := os.Getwd()
+
+    for currentPath != "/" {
+        if _, err := os.Stat(currentPath + "/" + fileName); os.IsNotExist(err) {
+            currentPath = path.Dir(currentPath)
+        } else {
+            foundPath = currentPath
+            break;
+        }
+    }
+
+    return foundPath
+}
+
 func calculatePathSegment() string {
     currentDir, _ := os.Getwd()
-    rootDir := os.Args[2]
+    rootDir := findDockerComposePath()
 
     segment := strings.TrimPrefix(currentDir, rootDir)
     if (segment == "") {
@@ -91,8 +112,64 @@ func calculatePathSegment() string {
     return strings.TrimPrefix(segment, "/")
 }
 
-func buildCommand(alias Alias, dcfs string) string {
-    return alias.name + "=docker-compose" + dcfs + " run --rm " + alias.service + " bash -c \"cd " + calculatePathSegment() + " && " + alias.command + "\""
+func calculateLevelsFromRoot() string {
+    currentDir, _ := os.Getwd()
+    aORb := regexp.MustCompile("/")
+	matchesFromRoot := aORb.FindAllStringIndex(strings.TrimSuffix(findDockerComposePath(), "/"), -1)
+    matchesFromCurrentDir  := aORb.FindAllStringIndex(strings.TrimSuffix(currentDir, "/"), -1)
+    diffrence := 0
+	if (len(matchesFromRoot) < len(matchesFromCurrentDir)) {
+		diffrence = len(matchesFromCurrentDir) - len(matchesFromRoot)
+    }
+    
+    levels := ""
+    for i := 0; i < diffrence; i++  {
+        levels = levels + "../"
+    }
+
+    return levels
+}
+
+func buildDockerComposeFileStrings() []string {
+    dockerComposeFiles := findDockerComposeFiles()
+    levelsFromRootString := calculateLevelsFromRoot()
+    var dockerComposeFileStrings []string
+
+    for _, dockerComposeFile := range dockerComposeFiles {
+        dockerComposeFileStrings = append(dockerComposeFileStrings, "-f")
+        dockerComposeFileStrings = append(dockerComposeFileStrings, levelsFromRootString + dockerComposeFile)
+    }
+
+    dockerComposeFileStrings = append(dockerComposeFileStrings, "-f")
+    return append(dockerComposeFileStrings, levelsFromRootString + "docker-compose.alias.yml")
+}
+
+func buildAdditionalParameterString() string {
+    command := ""
+    if (len(os.Args) > 3) {
+        for i := 3; i < len(os.Args); i++ {
+            command = command + " " + os.Args[i]
+        }
+    }   
+
+    return command
+}
+
+func buildCommand(alias Alias) []string {
+    dockerComposeFileStrings := buildDockerComposeFileStrings()
+    var commandParts []string
+
+    for _, dockerComposeFileString := range dockerComposeFileStrings {
+        commandParts = append(commandParts, dockerComposeFileString)
+    }
+    commandParts = append(commandParts, "run")
+    commandParts = append(commandParts, "--rm")
+    commandParts = append(commandParts, alias.service)
+    commandParts = append(commandParts, "bash")
+    commandParts = append(commandParts, "-c")
+    commandParts = append(commandParts, "cd " + calculatePathSegment() + "; " + alias.command + buildAdditionalParameterString())
+
+    return commandParts
 }
 
 func listNames() {
@@ -100,32 +177,82 @@ func listNames() {
     for _, alias := range aliases {
         fmt.Println(alias.name)
     }
-    fmt.Println("docker-show-alias")
+}
+
+func listAliases() {
+    aliases := getAliases()
+
+    for _, alias := range aliases {
+        fmt.Println(alias.name + "=docker-alias run-alias " + alias.service)
+    }
 }
 
 func listCommands() {
     aliases := getAliases()
-    dockerComposeFiles := findDockerComposeFiles()
-    dockerComposeFileString := ""
-
-    for _, dockerComposeFile := range dockerComposeFiles {
-        dockerComposeFileString = dockerComposeFileString + " -f " + dockerComposeFile
-    }
-    dockerComposeFileString = dockerComposeFileString + " -f docker-compose.alias.yml"
 
     for _, alias := range aliases {
-        fmt.Println(buildCommand(alias, dockerComposeFileString))
+        command := buildCommand(alias)
+        fmt.Println( alias.name + " = docker-compose " + strings.Join(command[:], " "))
+    }
+}
+
+func runAlias() {
+    aliases := getAliases()
+    wantedAlias := os.Args[2]
+    var command []string
+
+    for _, alias := range aliases {
+        if ( alias.name == wantedAlias) {
+            command = buildCommand(alias)
+        }
     }
 
-    fmt.Println("docker-show-alias=alias|grep \"docker-compose -f\" --color=never")
+    fmt.Println(fmt.Sprintf("Executing: %s", "docker-compose " + strings.Join(command[:], " ")))
+
+    cmd := exec.Command("docker-compose", command...)
+    stdoutReader, _ := cmd.StdoutPipe()
+    stderrReader, _ := cmd.StderrPipe()
+    stdoutScanner := bufio.NewScanner(stdoutReader)
+    stderrScanner := bufio.NewScanner(stderrReader)
+    go func() {
+        for stdoutScanner.Scan() {
+            fmt.Println(stdoutScanner.Text())
+        }
+    }()
+    go func() {
+        for stderrScanner.Scan() {
+            fmt.Println(stderrScanner.Text())
+        }
+    }()
+    cmd.Start()
+    err := cmd.Wait()
+    if err != nil {
+        fmt.Println(fmt.Sprintf("Error: %s", err.Error()))
+    }
 }
 
 func main() {
-    if (os.Args[1] == "list-names") {
-        listNames()
+    if (len(os.Args) > 1) {
+        projectRoot := findDockerComposePath()
+        if (os.Args[1] == "find-project-root") {
+            fmt.Println(projectRoot)
+        }
+        if (projectRoot == "") {
+            return 
+        }
+        if (os.Args[1] == "list-names") {
+            listNames()
+        }
+        if (os.Args[1] == "list-aliases") {
+            listAliases()
+        }
+        if (os.Args[1] == "list-commands") {
+            listCommands()
+        }
+        if (os.Args[1] == "run-alias") {
+            runAlias()
+        }
+    } else {
+        fmt.Println("Usage: docker-alias [find-project-root | list-names | list-aliases | list-commands | run-alias]")
     }
-    if (os.Args[1] == "list-commands") {
-        listCommands()
-    }
-
 }

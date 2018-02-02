@@ -12,7 +12,6 @@ import (
     "regexp"
     "path"
     "os/exec"
-    "bufio"
 )
 
 type Alias struct {
@@ -210,25 +209,9 @@ func runAlias() {
     fmt.Println(fmt.Sprintf("Executing: %s", "docker-compose " + strings.Join(command[:], " ")))
 
     cmd := exec.Command("docker-compose", command...)
-    stdoutReader, _ := cmd.StdoutPipe()
-    stderrReader, _ := cmd.StderrPipe()
-    stdoutScanner := bufio.NewScanner(stdoutReader)
-    stderrScanner := bufio.NewScanner(stderrReader)
-    go func() {
-        for stdoutScanner.Scan() {
-            fmt.Println(stdoutScanner.Text())
-        }
-    }()
-    go func() {
-        for stderrScanner.Scan() {
-            fmt.Println(stderrScanner.Text())
-        }
-    }()
-    cmd.Start()
-    err := cmd.Wait()
-    if err != nil {
-        fmt.Println(fmt.Sprintf("Error: %s", err.Error()))
-    }
+    cmd.Stdout = os.Stdout
+    cmd.Stderr = os.Stderr
+    cmd.Run()
 }
 
 func main() {

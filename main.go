@@ -183,7 +183,7 @@ func listAliases() {
     aliases := getAliases()
 
     for _, alias := range aliases {
-        fmt.Println(alias.name + "=docker-alias run-alias " + alias.service)
+        fmt.Println(alias.name + "=docker-alias run-alias " + alias.name)
     }
 }
 

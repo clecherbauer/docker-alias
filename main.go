@@ -18,6 +18,7 @@ type Alias struct {
     name string
     service string
     command string
+    user string
 }
 
 func getAliases() []Alias {
@@ -41,16 +42,19 @@ func getAliases() []Alias {
             if (strings.HasPrefix(label.(string), "com.docker-alias.command=")) {
                 alias.command = (strings.TrimPrefix(label.(string), "com.docker-alias.command="))
             }
-
-            if (alias.service == "") {
-                alias.service = service.(string)
+            if (strings.HasPrefix(label.(string), "com.docker-alias.user=")) {
+                alias.user = (strings.TrimPrefix(label.(string), "com.docker-alias.user="))
             }
-
-            if (alias.command == "") {
-                alias.command = alias.name
-            }
-
         }
+
+        if (alias.service == "") {
+            alias.service = service.(string)
+        }
+
+        if (alias.command == "") {
+            alias.command = alias.name
+        }
+
         aliases = append(aliases, alias)
 
         if err != nil {
@@ -163,6 +167,12 @@ func buildCommand(alias Alias) []string {
     }
     commandParts = append(commandParts, "run")
     commandParts = append(commandParts, "--rm")
+
+    if (alias.user != "") {
+        commandParts = append(commandParts, "-u")
+        commandParts = append(commandParts, alias.user)
+    }
+
     commandParts = append(commandParts, alias.service)
     commandParts = append(commandParts, "bash")
     commandParts = append(commandParts, "-c")

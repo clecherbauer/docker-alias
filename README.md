@@ -37,11 +37,12 @@ services:
      - com.docker-alias.name=npm
 ```
 
-There are 3 labels available:
+There are following labels available:
 ```
 com.docker-alias.name=npm <- the alias name
 com.docker-alias.command=/bin/bash <- [Optional] the command wich should be executed in the container, if not set the name will be used as the command
 com.docker-alias.service=node <- [Optional] the docker-compose service wich should be used, if not set the service in wich this label appears is used
+com.docker-alias.user=www-data <- [Optional] the user wich should be used
 ```
 
 Now cd into the path with the docker-compose.alias.yml and type docker-alias

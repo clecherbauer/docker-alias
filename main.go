@@ -30,7 +30,7 @@ func getAliases() []Alias {
     aliases := make([]Alias, 0)
 
     for service := range services {
-        labels, err := yaml.GetPath("services", service, "labels").Array()
+        labels, _ := yaml.GetPath("services", service, "labels").Array()
         alias := Alias{}
         for _, label := range labels {
             if (strings.HasPrefix(label.(string), "com.docker-alias.name=")) {
@@ -47,15 +47,17 @@ func getAliases() []Alias {
             }
         }
 
-        if (alias.service == "") {
-            alias.service = service.(string)
+        if (alias != Alias{}) {
+            if (alias.service == "") {
+                alias.service = service.(string)
+            }
+    
+            if (alias.command == "") {
+                alias.command = alias.name
+            }
+    
+            aliases = append(aliases, alias)
         }
-
-        if (alias.command == "") {
-            alias.command = alias.name
-        }
-
-        aliases = append(aliases, alias)
 
         if err != nil {
             panic(err)

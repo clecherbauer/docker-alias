@@ -24,7 +24,7 @@ type Alias struct {
 
 func getAliases() []Alias {
 	path := findDockerComposePath()
-	filename := path + "/docker-compose.alias.yml"
+	filename := path + "/docker-alias.yml"
 	source, err := ioutil.ReadFile(filename)
 	yaml, err := simpleyaml.NewYaml(source)
 	services, err := yaml.Get("services").Map()
@@ -90,7 +90,7 @@ func findDockerComposeFiles() []string {
 }
 
 func findDockerComposePath() string {
-	fileName := "docker-compose.alias.yml"
+	fileName := "docker-alias.yml"
 	foundPath := ""
 	currentPath, _ := os.Getwd()
 
@@ -147,7 +147,7 @@ func buildDockerComposeFileStrings() []string {
 	}
 
 	dockerComposeFileStrings = append(dockerComposeFileStrings, "-f")
-	return append(dockerComposeFileStrings, levelsFromRootString+"docker-compose.alias.yml")
+	return append(dockerComposeFileStrings, levelsFromRootString+"docker-alias.yml")
 }
 
 func buildAdditionalParameterString() string {

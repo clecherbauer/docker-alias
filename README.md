@@ -24,7 +24,7 @@ PATH=$PATH:/path/to/repo
 
 Create a docker-compose.alias.yml file and define your services:
 ```
-<<< docker-compose.alias.yml >>>
+<<< docker-alias.yml >>>
 version: '3'
 
 services:
@@ -45,9 +45,5 @@ com.docker-alias.service=node <- [Optional] the docker-compose service wich shou
 com.docker-alias.user=www-data <- [Optional] the user wich should be used
 ```
 
-Now cd into the path with the docker-compose.alias.yml and type docker-alias
+Now cd into the path with the docker-alias.yml and type docker-alias
 
-### Build
-```
-    make
-```

@@ -1,0 +1,34 @@
+version: "3"
+
+volumes:
+  alias-bindfs_mapped_data:
+    driver: lebokus/bindfs:latest
+    labels:
+      - com.docker-alias=true
+    driver_opts:
+      sourcePath: "${PWD}"
+      map: "${LOCAL_UID}/0:@${LOCAL_UID}/@0"
+
+services:
+  node:
+    image: node:4
+    volumes:
+     - alias_bindfs_mapped_data:/var/www/html
+    working_dir: /var/www/html
+    labels:
+     - com.docker-alias.name=npm
+
+  composer:
+    image: php-docker:7.0
+    volumes:
+     - alias_bindfs_mapped_data:/var/www/html
+     - $SSH_AUTH_SOCK:/ssh-auth.sock
+     - /var/cache/composer:/var/cache
+    working_dir: /var/www/html
+    environment:
+     - SSH_AUTH_SOCK=/ssh-auth.sock
+     - COMPOSER_CACHE_DIR=/var/cache
+    labels:
+     - com.docker-alias.name=composer
+    links:
+     - database:mysql

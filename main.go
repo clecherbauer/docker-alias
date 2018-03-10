@@ -20,6 +20,7 @@ type Alias struct {
 	service  string
 	command  string
 	user     string
+	workdir  string
 	keepRoot bool
 }
 
@@ -51,6 +52,12 @@ func getAliases() []Alias {
 				alias.keepRoot = true
 			}
 		}
+
+		workdir := ""
+		if yaml.GetPath("services", service, "working_dir").IsFound() {
+			workdir, _ = yaml.GetPath("services", service, "working_dir").String()
+		}
+		alias.workdir = workdir
 
 		if (alias != Alias{}) {
 			if alias.service == "" {
@@ -113,11 +120,7 @@ func findDockerComposePath() string {
 func calculatePathSegment() string {
 	currentDir, _ := os.Getwd()
 	rootDir := findDockerComposePath()
-
 	segment := strings.TrimPrefix(currentDir, rootDir)
-	if segment == "" {
-		return "./"
-	}
 
 	return strings.TrimPrefix(segment, "/")
 }
@@ -154,15 +157,14 @@ func buildDockerComposeFileStrings() []string {
 	return append(dockerComposeFileStrings, levelsFromRootString+"docker-alias.yml")
 }
 
-func buildAdditionalParameterString() string {
-	command := ""
+func appendAdditionalParameters(commandParts []string) []string {
 	if len(os.Args) > 3 {
 		for i := 3; i < len(os.Args); i++ {
-			command = command + " " + os.Args[i]
+			commandParts = append(commandParts, os.Args[i])
 		}
 	}
 
-	return command
+	return commandParts
 }
 
 func buildCommand(alias Alias) []string {
@@ -180,14 +182,14 @@ func buildCommand(alias Alias) []string {
 		commandParts = append(commandParts, alias.user)
 	}
 
-	commandParts = append(commandParts, alias.service)
-	commandParts = append(commandParts, "bash")
-	commandParts = append(commandParts, "-c")
-	if alias.keepRoot == true {
-		commandParts = append(commandParts, alias.command+buildAdditionalParameterString())
-	} else {
-		commandParts = append(commandParts, "cd "+calculatePathSegment()+"; "+alias.command+buildAdditionalParameterString())
+	if alias.keepRoot == false {
+		commandParts = append(commandParts, "-w")
+		commandParts = append(commandParts, alias.workdir+"/"+calculatePathSegment())
 	}
+
+	commandParts = append(commandParts, alias.service)
+	commandParts = append(commandParts, alias.command)
+	commandParts = appendAdditionalParameters(commandParts)
 
 	return commandParts
 }
@@ -230,6 +232,7 @@ func runAlias() {
 	fmt.Println(fmt.Sprintf("Executing: %s", "docker-compose "+strings.Join(command[:], " ")))
 
 	cmd := exec.Command("docker-compose", command...)
+	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()

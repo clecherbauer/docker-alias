@@ -184,9 +184,9 @@ func buildCommand(alias Alias) []string {
 	commandParts = append(commandParts, "bash")
 	commandParts = append(commandParts, "-c")
 	if alias.keepRoot == true {
-		commandParts = append(commandParts, "cd "+calculatePathSegment()+"; "+alias.command+buildAdditionalParameterString())
-	} else {
 		commandParts = append(commandParts, alias.command+buildAdditionalParameterString())
+	} else {
+		commandParts = append(commandParts, "cd "+calculatePathSegment()+"; "+alias.command+buildAdditionalParameterString())
 	}
 
 	return commandParts

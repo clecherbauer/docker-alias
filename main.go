@@ -234,6 +234,7 @@ func runAlias() {
 	cmd.Stderr = os.Stderr
 	cmd.Run()
 	cmd.Wait()
+	shutDownRemainingServices()
 	removeVolume()
 }
 
@@ -255,6 +256,14 @@ func removeVolume() {
 			subCmd.Wait()
 		}
 	}
+}
+
+func shutDownRemainingServices() {
+	cmd := exec.Command("docker-compose", "-f", calculateLevelsFromRoot()+"docker-alias.yml", "stop")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+	cmd.Wait()
 }
 
 func main() {

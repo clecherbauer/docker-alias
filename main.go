@@ -264,7 +264,6 @@ func removeVolume() {
 func shutDownRemainingServices() {
 	cmd := exec.Command("docker-compose", "-f", calculateLevelsFromRoot()+"docker-alias.yml", "stop")
 	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	cmd.Run()
 	cmd.Wait()
 }

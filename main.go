@@ -188,7 +188,11 @@ func buildCommand(alias Alias) []string {
 	}
 
 	commandParts = append(commandParts, alias.service)
-	commandParts = append(commandParts, alias.command)
+
+	aliasCommandParts := strings.Split(alias.command, " ")
+	for _, aliasCommandPart := range aliasCommandParts {
+		commandParts = append(commandParts, aliasCommandPart)
+	}
 	commandParts = appendAdditionalParameters(commandParts)
 
 	return commandParts

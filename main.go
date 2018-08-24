@@ -6,10 +6,12 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"syscall"
 
 	"github.com/smallfish/simpleyaml"
 	//"github.com/davecgh/go-spew/spew"
 	"os/exec"
+	"os/signal"
 	"path"
 	"regexp"
 	"sort"
@@ -222,6 +224,20 @@ func listCommands() {
 	}
 }
 
+type ProxyWriter struct {
+	file *os.File
+}
+
+func NewProxyWriter(file *os.File) *ProxyWriter {
+	return &ProxyWriter{
+		file: file,
+	}
+}
+
+func (w *ProxyWriter) Write(p []byte) (int, error) {
+	return w.file.Write(p)
+}
+
 func runAlias() {
 	aliases := getAliases()
 	wantedAlias := os.Args[2]
@@ -237,12 +253,36 @@ func runAlias() {
 
 	cmd := exec.Command("docker-compose", command...)
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Run()
+	cmd.Stdout = NewProxyWriter(os.Stdout)
+	cmd.Stderr = NewProxyWriter(os.Stderr)
+
+	fmt.Println("test")
+
+	c := make(chan os.Signal)
+	intr := make(chan bool)
+	quit := make(chan bool)
+
+	signal.Notify(c, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGILL, syscall.SIGSTOP)
+	go func(c chan os.Signal, quit chan bool) {
+		for {
+			fmt.Println("loop")
+			select {
+			case <-c:
+				fmt.Println("Got interrupt signal")
+				fmt.Println("Exiting signal handler..")
+				intr <- true
+			case <-quit:
+				fmt.Println("quit")
+				return
+			}
+		}
+	}(c, quit)
+
+	cmd.Start()
 	cmd.Wait()
 	shutDownRemainingServices()
 	removeVolume()
+	quit <- true
 }
 
 func removeVolume() {

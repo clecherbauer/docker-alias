@@ -6,12 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-	"syscall"
 
 	"github.com/smallfish/simpleyaml"
 	//"github.com/davecgh/go-spew/spew"
 	"os/exec"
-	"os/signal"
 	"path"
 	"regexp"
 	"sort"
@@ -256,33 +254,10 @@ func runAlias() {
 	cmd.Stdout = NewProxyWriter(os.Stdout)
 	cmd.Stderr = NewProxyWriter(os.Stderr)
 
-	fmt.Println("test")
-
-	c := make(chan os.Signal)
-	intr := make(chan bool)
-	quit := make(chan bool)
-
-	signal.Notify(c, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGILL, syscall.SIGSTOP)
-	go func(c chan os.Signal, quit chan bool) {
-		for {
-			fmt.Println("loop")
-			select {
-			case <-c:
-				fmt.Println("Got interrupt signal")
-				fmt.Println("Exiting signal handler..")
-				intr <- true
-			case <-quit:
-				fmt.Println("quit")
-				return
-			}
-		}
-	}(c, quit)
-
-	cmd.Start()
+	cmd.Run()
 	cmd.Wait()
 	shutDownRemainingServices()
 	removeVolume()
-	quit <- true
 }
 
 func removeVolume() {

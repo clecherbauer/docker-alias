@@ -10,6 +10,7 @@ import (
 	"github.com/smallfish/simpleyaml"
 	//"github.com/davecgh/go-spew/spew"
 	"os/exec"
+	"os/signal"
 	"path"
 	"regexp"
 	"sort"
@@ -249,10 +250,24 @@ func runAlias() {
 
 	fmt.Println(fmt.Sprintf("Executing: %s", "docker-compose "+strings.Join(command[:], " ")))
 
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
 	cmd := exec.Command("docker-compose", command...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = NewProxyWriter(os.Stdout)
 	cmd.Stderr = NewProxyWriter(os.Stderr)
+
+	go func() {
+		for {
+			select {
+			case <-c:
+				fmt.Println("")
+				fmt.Println("Killing process")
+				cmd.Process.Kill()
+			}
+		}
+	}()
 
 	cmd.Run()
 	cmd.Wait()

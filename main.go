@@ -168,7 +168,7 @@ func appendAdditionalParameters(commandParts []string) []string {
 	return commandParts
 }
 
-func buildCommand(alias Alias) []string {
+func buildRunArguments(alias Alias) []string {
 	dockerComposeFileStrings := buildDockerComposeFileStrings()
 	var commandParts []string
 
@@ -199,6 +199,20 @@ func buildCommand(alias Alias) []string {
 	return commandParts
 }
 
+func buildRebuildArguments(alias Alias) []string {
+	dockerComposeFileStrings := buildDockerComposeFileStrings()
+	var commandParts []string
+
+	for _, dockerComposeFileString := range dockerComposeFileStrings {
+		commandParts = append(commandParts, dockerComposeFileString)
+	}
+	commandParts = append(commandParts, "build")
+
+	commandParts = append(commandParts, alias.service)
+
+	return commandParts
+}
+
 func listNames() {
 	aliases := getAliases()
 	for _, alias := range aliases {
@@ -218,7 +232,7 @@ func listCommands() {
 	aliases := getAliases()
 
 	for _, alias := range aliases {
-		command := buildCommand(alias)
+		command := buildRunArguments(alias)
 		fmt.Println(alias.name + " = docker-compose " + strings.Join(command[:], " "))
 	}
 }
@@ -240,20 +254,20 @@ func (w *ProxyWriter) Write(p []byte) (int, error) {
 func runAlias() {
 	aliases := getAliases()
 	wantedAlias := os.Args[2]
-	var command []string
+	var arguments []string
 
 	for _, alias := range aliases {
 		if alias.name == wantedAlias {
-			command = buildCommand(alias)
+			arguments = buildRunArguments(alias)
 		}
 	}
 
-	fmt.Println(fmt.Sprintf("Executing: %s", "docker-compose "+strings.Join(command[:], " ")))
+	fmt.Println(fmt.Sprintf("Executing: %s", "docker-compose "+strings.Join(arguments[:], " ")))
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 
-	cmd := exec.Command("docker-compose", command...)
+	cmd := exec.Command("docker-compose", arguments...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = NewProxyWriter(os.Stdout)
 	cmd.Stderr = NewProxyWriter(os.Stderr)
@@ -273,6 +287,22 @@ func runAlias() {
 	cmd.Wait()
 	shutDownRemainingServices()
 	removeVolume()
+}
+
+func rebuildAliasContainers() {
+	aliases := getAliases()
+
+	for _, alias := range aliases {
+		var arguments = buildRebuildArguments(alias)
+
+		fmt.Println(fmt.Sprintf("Executing: %s", "docker-compose "+strings.Join(arguments[:], " ")))
+
+		cmd := exec.Command("docker-compose", arguments...)
+		cmd.Stdout = NewProxyWriter(os.Stdout)
+		cmd.Stderr = NewProxyWriter(os.Stderr)
+		cmd.Run()
+		cmd.Wait()
+	}
 }
 
 func removeVolume() {
@@ -323,7 +353,10 @@ func main() {
 		if os.Args[1] == "run-alias" {
 			runAlias()
 		}
+		if os.Args[1] == "rebuild" {
+			rebuildAliasContainers()
+		}
 	} else {
-		fmt.Println("Usage: docker-alias [find-project-root | list-names | list-aliases | list-commands | run-alias]")
+		fmt.Println("Usage: docker-alias [find-project-root | list-names | list-aliases | list-commands | run-alias | rebuild]")
 	}
 }

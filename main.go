@@ -309,8 +309,6 @@ func removeVolume() {
 	cmd := exec.Command("docker", "volume", "ls", "--filter", "label=com.docker-alias=true", "--quiet")
 	cmdOutput := &bytes.Buffer{}
 	cmd.Stdout = cmdOutput
-	cmd.Stderr = os.Stderr
-
 	cmd.Run()
 	cmd.Wait()
 
@@ -318,7 +316,6 @@ func removeVolume() {
 	for _, line := range lines {
 		if line != "" {
 			subCmd := exec.Command("docker", "volume", "rm", line)
-			subCmd.Stderr = os.Stderr
 			subCmd.Run()
 			subCmd.Wait()
 		}

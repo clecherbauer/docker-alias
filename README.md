@@ -1,13 +1,13 @@
 # docker-alias
 
 Bash Aliases for docker
-This will hook into the cd command and look for a docker-compose.alias.yml.
+This will hook into the cd command and look for a docker-alias.yml.
 The services in it get extracted and a bash alias is generated.
 
 Now you can use "containerized"-tools as if they where installed on your host-machine.
 
 It also exports some handy environment variables:
-* PROJECT_ROOT_PATH <- the path where the docker-compose.alias.yml is stored
+* PROJECT_ROOT_PATH <- the path where the docker-alias.yml is stored
 * LOCAL_UID <- the executers uid
 * LOCAL_GID <- the executers gid
 
@@ -38,12 +38,17 @@ services:
 ```
 
 There are following labels available:
-```
-com.docker-alias.name=npm <- the alias name
-com.docker-alias.command=/bin/bash <- [Optional] the command wich should be executed in the container, if not set the name will be used as the command
-com.docker-alias.service=node <- [Optional] the docker-compose service wich should be used, if not set the service in wich this label appears is used
-com.docker-alias.user=www-data <- [Optional] the user wich should be used
-```
+
+`com.docker-alias.name=npm` - the alias name and command
+
+`com.docker-alias.command=/bin/bash` - the command wich should be executed in the service, if empty the name will be used as the command
+
+`com.docker-alias.service=node` - [Optional] the service wich should be used, if not set the service in wich this label appears is used
+
+`com.docker-alias.user=www-data` - [Optional] the user wich should be used to execute the service
+
+`com.docker-alias.keepRoot=true` - [Optional] the command is executed in the services defined workdirectory
+
 
 Now cd into the path with the docker-alias.yml and type docker-alias
 

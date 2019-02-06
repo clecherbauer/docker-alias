@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 )
 
@@ -108,10 +109,27 @@ func runAlias() {
 	aliases := getAliases()
 	wantedAlias := os.Args[2]
 	var arguments []string
+	var alias Alias
 
-	for _, alias := range aliases {
-		if alias.name == wantedAlias {
-			arguments = buildRunArguments(alias)
+	for _, availableAlias := range aliases {
+		if availableAlias.name == wantedAlias {
+			alias = availableAlias
+		}
+	}
+
+	arguments = buildRunArguments(alias)
+
+	if alias.buildPath != "" {
+		hash := calculateBuildTreeHash(filepath.Dir(alias.buildPath))
+
+		if !serviceCacheFileExists(alias.service) {
+			writeServiceCacheFile(alias.service, hash)
+			rebuildAliasContainer(alias.name)
+		} else {
+			if hash != getLastBuildTreeHash(alias.service) {
+				writeServiceCacheFile(alias.service, hash)
+				rebuildAliasContainer(alias.name)
+			}
 		}
 	}
 

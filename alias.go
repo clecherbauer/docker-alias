@@ -8,12 +8,13 @@ import (
 )
 
 type Alias struct {
-	name     string
-	service  string
-	command  string
-	user     string
-	workdir  string
-	keepRoot bool
+	name      string
+	service   string
+	command   string
+	user      string
+	workdir   string
+	keepRoot  bool
+	buildPath string
 }
 
 func getAliases() []Alias {
@@ -26,9 +27,14 @@ func getAliases() []Alias {
 
 	for service := range services {
 		labels, _ := yaml.GetPath("services", service, "labels").Array()
+		build, _ := yaml.GetPath("services", service, "build", "dockerfile").String()
 		alias := Alias{}
 		multiCommandAlias := false
 		commands := []string{}
+
+		if build != "" {
+			alias.buildPath = build
+		}
 
 		for _, label := range labels {
 			if strings.HasPrefix(label.(string), "com.docker-alias.name=") {

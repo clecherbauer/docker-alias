@@ -41,6 +41,8 @@ There are following labels available:
 
 `com.docker-alias.name=npm` - the alias name and command
 
+`com.docker-alias.name=[node, npm, vue]` - multiple alias names and commands
+
 `com.docker-alias.command=/bin/bash` - [Optional] the command wich should be executed in the service, if empty the name will be used as the command
 
 `com.docker-alias.service=node` - [Optional] the service wich should be used, if not set the service in wich this label appears is used

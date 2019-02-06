@@ -27,9 +27,22 @@ func getAliases() []Alias {
 	for service := range services {
 		labels, _ := yaml.GetPath("services", service, "labels").Array()
 		alias := Alias{}
+		multiCommandAlias := false
+		commands := []string{}
+
 		for _, label := range labels {
 			if strings.HasPrefix(label.(string), "com.docker-alias.name=") {
-				alias.name = (strings.TrimPrefix(label.(string), "com.docker-alias.name="))
+				nameValue := (strings.TrimPrefix(label.(string), "com.docker-alias.name="))
+				if strings.HasPrefix(nameValue, "[") && strings.HasSuffix(nameValue, "]") {
+					multiCommandAlias = true
+					nameValue = strings.Replace(nameValue, " ", "", -1)
+					nameValue = strings.Trim(nameValue, "com.docker-alias.name=")
+					nameValue = strings.Trim(nameValue, "[")
+					nameValue = strings.Trim(nameValue, "]")
+					commands = strings.Split(nameValue, ",")
+				} else {
+					alias.name = nameValue
+				}
 			}
 			if strings.HasPrefix(label.(string), "com.docker-alias.service=") {
 				alias.service = (strings.TrimPrefix(label.(string), "com.docker-alias.service="))
@@ -55,12 +68,18 @@ func getAliases() []Alias {
 			if alias.service == "" {
 				alias.service = service.(string)
 			}
-
-			if alias.command == "" {
-				alias.command = alias.name
+			if multiCommandAlias == false {
+				if alias.command == "" {
+					alias.command = alias.name
+				}
+				aliases = append(aliases, alias)
+			} else {
+				for _, command := range commands {
+					alias.name = command
+					alias.command = command
+					aliases = append(aliases, alias)
+				}
 			}
-
-			aliases = append(aliases, alias)
 		}
 
 		if err != nil {

@@ -20,8 +20,8 @@ function _load_docker_aliases() {
     export LOCAL_UID=$(id -u)
     export LOCAL_GID=$(id -g)
 
-    while read -r ALIASCOMMAND; do
-        alias $ALIASCOMMAND
+    while read -r "ALIASCOMMAND"; do
+        alias "$ALIASCOMMAND"
     done < <(docker-alias list-aliases)
 
     if [ -f docker-alias.yml ]; then
@@ -30,8 +30,8 @@ function _load_docker_aliases() {
 }
 
 function _unload_docker_aliases() {
-    while read -r ALIASNAME; do
-        unalias $ALIASNAME 2>/dev/null
+    while read -r "ALIASNAME"; do
+        unalias "$ALIASNAME" 2>/dev/null
     done < <(docker-alias list-names)
 }
 

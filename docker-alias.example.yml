@@ -30,3 +30,26 @@ services:
      - COMPOSER_CACHE_DIR=/var/cache
     labels:
      - com.docker-alias.name=composer
+
+  #x11 passthrough   
+  rider:
+    build:
+      context: .
+      dockerfile: .deployment/docker/alias/rider/Dockerfile
+    volumes:
+     - /tmp/.X11-unix:/tmp/.X11-unix
+     - $HOME:$HOME
+    labels:
+      - com.docker-alias.name=rider
+      - com.docker-alias.command=/usr/local/bin/userswitch.sh /opt/rider/bin/rider.sh
+      # userswitch.sh
+      # set -e
+      # useradd -u $LOCAL_UID $USER
+      # su $USER -c "$@"
+      - com.docker-alias.detach=true
+      - com.docker-alias.silent=true
+      - com.docker-alias.preExecutionCommand=xhost +local:root;
+    environment:
+      - DISPLAY
+      - LOCAL_UID
+      - USER

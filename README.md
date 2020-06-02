@@ -7,9 +7,9 @@ The services in it get extracted and a bash alias is generated.
 Now you can use "containerized"-tools as if they where installed on your host-machine.
 
 It also exports some handy environment variables:
-* PROJECT_ROOT_PATH <- the path where the docker-alias.yml is stored
-* LOCAL_UID <- the executers uid
-* LOCAL_GID <- the executers gid
+* PROJECT_ROOT_PATH - the path where the docker-alias.yml is stored
+* LOCAL_UID - the executers uid
+* LOCAL_GID - the executers gid
 
 ### Installing
 
@@ -50,6 +50,12 @@ There are following labels available:
 `com.docker-alias.user=www-data` - [Optional] the user wich should be used to execute the service
 
 `com.docker-alias.keepRoot=true` - [Optional] the command is executed in the services defined workdirectory
+
+`com.docker-alias.detach=true` - [Optional] start the service detached
+
+`com.docker-alias.silent=true` - [Optional] silents the services stdout and stderr
+
+`com.docker-alias.preExecutionCommand` - [Optional] the command is executed on the host before the service starts
 
 
 Now cd into the path with the docker-alias.yml and type docker-alias

@@ -8,13 +8,16 @@ import (
 )
 
 type Alias struct {
-	name      string
-	service   string
-	command   string
-	user      string
-	workdir   string
-	keepRoot  bool
-	buildPath string
+	name                string
+	service             string
+	command             string
+	user                string
+	workdir             string
+	keepRoot            bool
+	detach              bool
+	silent              bool
+	buildPath           string
+	preExecutionCommand string
 }
 
 func getAliases() []Alias {
@@ -61,6 +64,15 @@ func getAliases() []Alias {
 			}
 			if strings.HasPrefix(label.(string), "com.docker-alias.keepRoot=true") {
 				alias.keepRoot = true
+			}
+			if strings.HasPrefix(label.(string), "com.docker-alias.detach=true") {
+				alias.detach = true
+			}
+			if strings.HasPrefix(label.(string), "com.docker-alias.silent=true") {
+				alias.silent = true
+			}
+			if strings.HasPrefix(label.(string), "com.docker-alias.preExecutionCommand=") {
+				alias.preExecutionCommand = (strings.TrimPrefix(label.(string), "com.docker-alias.preExecutionCommand="))
 			}
 		}
 

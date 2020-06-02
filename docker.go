@@ -44,6 +44,10 @@ func buildRunArguments(alias Alias) []string {
 		commandParts = append(commandParts, alias.workdir+"/"+calculatePathSegment())
 	}
 
+	if alias.detach == true {
+		commandParts = append(commandParts, "-d")
+	}
+
 	commandParts = append(commandParts, alias.service)
 
 	aliasCommandParts := strings.Split(alias.command, " ")
@@ -132,16 +136,19 @@ func runAlias() {
 			}
 		}
 	}
-
-	fmt.Println(fmt.Sprintf("Executing: %s", "docker-compose "+strings.Join(arguments[:], " ")))
+	if alias.silent == false {
+		fmt.Println(fmt.Sprintf("Executing: %s", "docker-compose "+strings.Join(arguments[:], " ")))
+	}
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 
 	cmd := exec.Command("docker-compose", arguments...)
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = NewProxyWriter(os.Stdout)
-	cmd.Stderr = NewProxyWriter(os.Stderr)
+	if alias.silent == false {
+		cmd.Stdout = NewProxyWriter(os.Stdout)
+		cmd.Stderr = NewProxyWriter(os.Stderr)
+	}
 
 	go func() {
 		for {
@@ -153,6 +160,20 @@ func runAlias() {
 			}
 		}
 	}()
+
+	if len(alias.preExecutionCommand) > 0 {
+		var preCmdArguments []string
+		preCmdArguments = strings.Split(alias.preExecutionCommand, " ")
+
+		preCmd := exec.Command(preCmdArguments[0], preCmdArguments[:0]...)
+		preCmd.Stdin = os.Stdin
+		if alias.silent == false {
+			preCmd.Stdout = NewProxyWriter(os.Stdout)
+		}
+		preCmd.Stderr = NewProxyWriter(os.Stderr)
+		preCmd.Run()
+		preCmd.Wait()
+	}
 
 	cmd.Run()
 	cmd.Wait()

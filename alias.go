@@ -21,12 +21,10 @@ type Alias struct {
 }
 
 func getAliases() []Alias {
-	path := findDockerComposePath()
-	filename := path + "/docker-alias.yml"
-	source, err := ioutil.ReadFile(filename)
-	yaml, err := simpleyaml.NewYaml(source)
-	services, err := yaml.Get("services").Map()
+
 	aliases := make([]Alias, 0)
+
+	yaml, services, err := getServices()
 
 	for service := range services {
 		labels, _ := yaml.GetPath("services", service, "labels").Array()
@@ -110,4 +108,14 @@ func getAliases() []Alias {
 	}
 
 	return aliases
+}
+
+func getServices() (*simpleyaml.Yaml, map[interface {}]interface {}, error) {
+	path := findDockerComposePath()
+	filename := path + "/docker-alias.yml"
+	source, err := ioutil.ReadFile(filename)
+	yaml, err := simpleyaml.NewYaml(source)
+	services, err := yaml.Get("services").Map()
+
+	return yaml, services, err
 }

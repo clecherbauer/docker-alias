@@ -7,7 +7,7 @@ import (
 )
 
 // version of this tool
-const version = "1.2.0"
+const version = "1.2.1"
 
 func listNames() {
 	aliases := getAliases()
@@ -69,6 +69,10 @@ func main() {
 			rebuildAliasContainers()
 			return
 		}
+		if os.Args[1] == "clean" {
+			clean()
+			return
+		}
 	}
 
 	printUsage()
@@ -86,6 +90,7 @@ func printUsage() {
 	fmt.Println(" run-alias [name] ...	Run an alias by name an pass additional arguments to container")
 	fmt.Println(" rebuild		Rebuild all service containers")
 	fmt.Println(" rebuild [name]		Rebuild a specific service container by name")
+	fmt.Println(" clean			Remove old Containers e.g. due to detached mode")
 	fmt.Println("")
 	fmt.Println("This tool depends on: docker and docker-compose")
 	fmt.Println("")

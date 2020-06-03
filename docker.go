@@ -199,8 +199,30 @@ func removeVolume() {
 }
 
 func shutDownRemainingServices() {
-	cmd := exec.Command("docker-compose", "-f", calculateLevelsFromRoot()+"docker-alias.yml", "stop")
-	cmd.Stdout = os.Stdout
-	cmd.Run()
-	cmd.Wait()
+	_, services, _ := getServices()
+
+	for service := range services {
+		var arguments = buildDockerComposeFileStrings()
+		arguments = append(arguments, "stop")
+		arguments = append(arguments, service.(string))
+		cmd := exec.Command("docker-compose", arguments...)
+		cmd.Run()
+		cmd.Wait()
+	}
+}
+
+func clean() {
+	_, services, _ := getServices()
+
+	for service := range services {
+		var arguments = buildDockerComposeFileStrings()
+		arguments = append(arguments, "rm")
+		arguments = append(arguments, "-f")
+		arguments = append(arguments, "-s")
+		arguments = append(arguments, "-v")
+		arguments = append(arguments, service.(string))
+		cmd := exec.Command("docker-compose", arguments...)
+		cmd.Run()
+		cmd.Wait()
+	}
 }

@@ -2,12 +2,13 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
+	osexec "golang.org/x/sys/execabs"
 )
 
 func buildDockerComposeFileStrings() []string {
@@ -79,11 +80,9 @@ func rebuildAliasContainers() {
 	for _, alias := range aliases {
 		var arguments = buildRebuildArguments(alias)
 
-		fmt.Println(fmt.Sprintf("Executing: %s", "docker-compose "+strings.Join(arguments[:], " ")))
-
 		cmd := exec.Command("docker-compose", arguments...)
-		cmd.Stdout = NewProxyWriter(os.Stdout)
-		cmd.Stderr = NewProxyWriter(os.Stderr)
+		cmd.Stdout = StdoutProxy(os.Stdout)
+		cmd.Stderr = StdoutProxy(os.Stderr)
 		cmd.Run()
 		cmd.Wait()
 	}
@@ -100,11 +99,9 @@ func rebuildAliasContainer(aliasName string) {
 
 	var arguments = buildRebuildArguments(currentAlias)
 
-	fmt.Println(fmt.Sprintf("Executing: %s", "docker-compose "+strings.Join(arguments[:], " ")))
-
 	cmd := exec.Command("docker-compose", arguments...)
-	cmd.Stdout = NewProxyWriter(os.Stdout)
-	cmd.Stderr = NewProxyWriter(os.Stderr)
+	cmd.Stdout = StdoutProxy(os.Stdout)
+	cmd.Stderr = StdoutProxy(os.Stderr)
 	cmd.Run()
 	cmd.Wait()
 }
@@ -136,50 +133,59 @@ func runAlias() {
 			}
 		}
 	}
-	if alias.silent == false {
-		fmt.Println(fmt.Sprintf("Executing: %s", "docker-compose "+strings.Join(arguments[:], " ")))
-	}
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-
-	cmd := exec.Command("docker-compose", arguments...)
-	cmd.Stdin = os.Stdin
-	if alias.silent == false {
-		cmd.Stdout = NewProxyWriter(os.Stdout)
-		cmd.Stderr = NewProxyWriter(os.Stderr)
-	}
-
-	go func() {
-		for {
-			select {
-			case <-c:
-				fmt.Println("")
-				fmt.Println("Killing process")
-				cmd.Process.Kill()
-			}
-		}
-	}()
+	cmd := osexec.Command("docker-compose", arguments...)
 
 	if len(alias.preExecutionCommand) > 0 {
 		var preCmdArguments []string
 		preCmdArguments = strings.Split(alias.preExecutionCommand, " ")
 
-		preCmd := exec.Command(preCmdArguments[0], preCmdArguments[:0]...)
-		preCmd.Stdin = os.Stdin
-		if alias.silent == false {
-			preCmd.Stdout = NewProxyWriter(os.Stdout)
-		}
-		preCmd.Stderr = NewProxyWriter(os.Stderr)
-		preCmd.Run()
-		preCmd.Wait()
+		preCmd := osexec.Command(preCmdArguments[0], preCmdArguments[:0]...)
+        execCmd(preCmd)
 	}
-
-	cmd.Run()
-	cmd.Wait()
+    execCmd(cmd)
+    waitStatus := cmd.ProcessState.Sys().(syscall.WaitStatus)
 	shutDownRemainingServices()
 	removeVolume()
+	os.Exit(waitStatus.ExitStatus())
 }
+
+func execCmd(cmd *exec.Cmd) error {
+
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = StdoutProxy(os.Stdout)
+	cmd.Stderr = StdoutProxy(os.Stderr)
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	sigChan := make(chan os.Signal)
+	signal.Notify(sigChan)
+
+    waitChan := make(chan error, 1)
+    go func() {
+        waitChan <- cmd.Wait()
+        close(waitChan)
+    }()
+
+    for {
+        select {
+        case sig := <-sigChan:
+             if err := cmd.Process.Signal(sig); err != nil {}
+        case err := <-waitChan:
+            var waitStatus syscall.WaitStatus
+            if exitError, ok := err.(*exec.ExitError); ok {
+                waitStatus = exitError.Sys().(syscall.WaitStatus)
+                os.Exit(waitStatus.ExitStatus())
+            }
+            if err != nil {}
+            return nil
+        }
+    }
+	return nil
+}
+
 
 func removeVolume() {
 	cmd := exec.Command("docker", "volume", "ls", "--filter", "label=com.docker-alias=true", "--quiet")
@@ -225,4 +231,25 @@ func clean() {
 		cmd.Run()
 		cmd.Wait()
 	}
+}
+
+
+type StdoutProxyWriter struct {
+	file *os.File
+}
+
+func StdoutProxy(file *os.File) *StdoutProxyWriter {
+	return &StdoutProxyWriter {
+		file: file,
+	}
+}
+
+func (w *StdoutProxyWriter) Write(p []byte) (int, error) {
+    s := string(p)
+
+    if strings.HasPrefix(s, "Creating volume") || strings.HasPrefix(s, "Error response from daemon:") {
+        filter := make([]byte, 0)
+        return w.file.Write(filter)
+    }
+	return w.file.Write(p)
 }

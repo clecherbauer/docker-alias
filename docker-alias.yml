@@ -1,0 +1,53 @@
+volumes:
+  bindfs:
+    driver: lebokus/bindfs:latest
+    driver_opts:
+      sourcePath: "$YAML_LOCATION_DIR"
+      map: "$UID/0:@$UID/@0"
+
+keep_volumes: False
+auto_rebuild_images: True
+
+containers:
+  python:
+    build:
+      context: .
+      dockerfile: .devops/docker/alias/python/Dockerfile
+    volumes:
+     - bindfs:$DEFAULT_WORKING_DIR
+     - $SSH_AUTH_SOCK:/ssh-auth.sock
+    commands:
+      - container-shell:
+          path: /bin/bash
+      - python
+      - pyinstaller
+      - pip3
+      - flake8
+      - autopep8
+      - prospector
+      - prospector-html
+    keep_root: false
+    quiet: false
+    pre_exec_hook_command: ''
+    post_exec_hook_command: ''
+    env_file: .env
+    user: root
+    environment:
+      - SSH_AUTH_SOCK=/ssh-auth.sock
+      - PYTHONPATH=$DEFAULT_WORKING_DIR
+    entrypoint: /usr/local/bin/entrypoint.sh
+
+  node:
+    build:
+      context: .
+      dockerfile: .devops/docker/alias/node/Dockerfile
+    working_dir: /app
+    volumes:
+     - bindfs:/app
+     - $SSH_AUTH_SOCK:/ssh-auth.sock
+    commands:
+     - node
+     - npm
+    env_file: .env
+    environment:
+      - SSH_AUTH_SOCK=/ssh-auth.sock

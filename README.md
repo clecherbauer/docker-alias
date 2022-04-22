@@ -1,6 +1,6 @@
 # docker-alias
 
-Bash Aliases for docker
+Aliases for docker
 This will hook into the cd command and look for a docker-alias.yml.
 The services in it get extracted and a bash alias is generated.
 
@@ -11,7 +11,7 @@ It also exports some handy environment variables:
 * LOCAL_UID - the executers uid
 * LOCAL_GID - the executers gid
 
-### Installing
+### Installation
 
 Clone this repo onto your desired destination and source the auto-docker-alias file in your .bashrc or .zshrc:
 

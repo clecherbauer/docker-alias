@@ -7,6 +7,6 @@ build
 dist
 *.spec
 .env
-*.zip
-/docker-alaias
+/ocker-alias/
+docker-alias.zip
 __pycache__

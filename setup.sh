@@ -38,5 +38,3 @@ if ! grep -q "$DOCKER_ALIAS_PATH" "$BASH_PROFILE"; then
   echo "$DOCKER_ALIAS_PATH" >> "$BASH_PROFILE"
 fi
 source "$BASH_PROFILE"
-
-systemctl --user status "$DOCKER_ALIAS_DAEMON_SYSTEMD_FILE"

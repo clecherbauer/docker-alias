@@ -288,8 +288,7 @@ class DockerUtil:
         current_dir = os.getcwd()
         root_dir = container.fs_location
         path_segment = current_dir.replace(root_dir, '').strip('/')
+
         if container.working_dir:
-            print(container.working_dir)
-            print(path_segment)
             return os.path.join(container.working_dir, path_segment)
         return os.path.join(DEFAULT_WORKING_DIR, path_segment)

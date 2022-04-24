@@ -73,5 +73,7 @@ class Daemon:
 if __name__ == '__main__':
     try:
         Daemon().run()
-    except(KeyboardInterrupt, SystemExit):
+    except KeyboardInterrupt:
         pass
+    except Exception as exception:
+        print(exception)

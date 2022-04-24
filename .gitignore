@@ -1,12 +1,9 @@
 .idea
-pkg
-src
-docker-compose.alias.yml
 .pydeps
 build
 dist
 *.spec
 .env
-/ocker-alias/
+docker-alias/
 docker-alias.zip
 __pycache__

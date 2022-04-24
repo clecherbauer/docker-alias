@@ -9,7 +9,7 @@ Enables you to use docker-containers to execute commands as if they where instal
 
 ### Installation
 
-`wget -q -O - "https://raw.githubusercontent.com/clecherbauer/docker-alias/2.0.0/online-installer.sh" | bash`
+`wget -q -O - "https://raw.githubusercontent.com/clecherbauer/docker-alias/v2.0.1/online-installer.sh" | bash`
 
 ### Usage
 

@@ -1,6 +1,7 @@
 import os.path
 import pty
 import select
+import subprocess
 import sys
 import termios
 import tty
@@ -179,16 +180,21 @@ class DockerUtil:
             if volume.name == volume_name:
                 volume.remove(True)
 
-    def exec_docker_subprocess(self, container: Container, command: Command = None, attributes: List = None) -> int:
-        old_tty = termios.tcgetattr(sys.stdin)
-        tty.setraw(sys.stdin.fileno())
-
-        # open pseudo-terminal to interact with subprocess
-        master_fd, slave_fd = pty.openpty()
+    def exec_docker_subprocess(self, container, command: Command = None, attributes: List = None) -> int:
         try:
+            old_tty = termios.tcgetattr(sys.stdin)
+            tty.setraw(sys.stdin.fileno())
+            return self.exec_docker_subprocess_tty(old_tty, container, command, attributes)
+        except termios.error:
+            return self.exec_docker_subprocess_stdout_pipe(container, command, attributes)
+
+    def exec_docker_subprocess_tty(self, old_tty, container, command: Command = None, attributes: List = None):
+        try:
+            # open pseudo-terminal to interact with subprocess
+            master_fd, slave_fd = pty.openpty()
             # use os.setsid() make it run in a new process group, or bash job control will not be enabled
             p = Popen(
-                self.build_command(container, command, attributes),
+                self.build_command(container, command, attributes, _tty=True),
                 preexec_fn=os.setsid,
                 stdin=slave_fd,
                 stdout=slave_fd,
@@ -197,7 +203,7 @@ class DockerUtil:
             )
 
             while p.poll() is None:
-                r, w, e = select.select([sys.stdin, master_fd], [], [], 0.5)
+                r, w, e = select.select([sys.stdin, master_fd], [], [], 0.2)
                 if sys.stdin in r:
                     d = os.read(sys.stdin.fileno(), 10240)
                     os.write(master_fd, d)
@@ -210,7 +216,28 @@ class DockerUtil:
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
         return p.poll()
 
-    def build_command(self, container: Container, command: Command = None, attributes: List = None) -> List[str]:
+    def exec_docker_subprocess_stdout_pipe(self, container, command: Command = None, attributes: List = None):
+        process = subprocess.Popen(
+            self.build_command(container, command, attributes, _tty=False),
+            preexec_fn=os.setsid,
+            stdout=subprocess.PIPE,
+            universal_newlines=True
+        )
+        while True:
+            output = process.stdout.readline()
+            if output == '' and process.poll() is not None:
+                break
+            if output:
+                print(output.strip())
+        return process.poll()
+
+    def build_command(
+            self,
+            container: Container,
+            command: Command = None,
+            attributes: List = None,
+            _tty: bool = True
+    ) -> List[str]:
         if attributes is None:
             attributes = []
 
@@ -223,11 +250,12 @@ class DockerUtil:
         cmd_base = [
             'docker',
             'run',
-            '-it',
             '--pid=host',
             '--rm',
             '--name=' + self.get_container_name(container),
         ]
+        if _tty:
+            cmd_base = cmd_base + ['-it']
         cmd_base = cmd_base + self.build_docker_run_arguments(container)
         return cmd_base + [
             container.image,

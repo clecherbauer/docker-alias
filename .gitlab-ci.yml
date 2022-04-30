@@ -1,0 +1,39 @@
+stages:
+- generate
+- release
+
+generate_linux:
+  stage: generate
+  image: registry.gitlab.com/clecherbauer/docker-images/python:3.8-debian-bullseye
+  script:
+    - export PYTHONPATH=$PWD/.pydeps
+    - export PATH=$PWD/.pydeps/bin:$PATH
+    - apt update
+    - apt install zip -y
+    - source ./build.sh
+    - build_linux
+    - echo LINUX_JOB_ID=$CI_JOB_ID >> linux.env
+  artifacts:
+    paths:
+      - docker-alias.linux64.zip
+    reports:
+      dotenv: linux.env
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  script:
+    - echo 'running release_job'
+  needs:
+    - job: generate_linux
+      artifacts: true
+  release:
+    name: 'Release $CI_COMMIT_TAG'
+    description: '$CI_COMMIT_TAG'
+    tag_name: '$CI_COMMIT_TAG'
+    assets:
+      links:
+        - name: 'Linux executable'
+          url: '$CI_PROJECT_URL/-/jobs/${LINUX_JOB_ID}/artifacts/raw/docker-alias.linux64.zip'
+  only:
+    - tags

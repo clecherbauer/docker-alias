@@ -5,5 +5,5 @@ dist
 *.spec
 .env
 docker-alias/
-docker-alias.zip
+docker-alias.*.zip
 __pycache__

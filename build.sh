@@ -1,25 +1,33 @@
 #!/usr/bin/env bash
-
 set -e
 
-PYTHONPATH="$PWD/.pydeps:$PYTHONPATH"
-PATH="$PWD/.pydeps/bin:$PATH"
+ZIP_DIR="docker-alias"
+ZIP_LINUX64="docker-alias.linux64.zip"
 
-if [ -f "./docker-alias.zip" ]; then rm "./docker-alias.zip"; fi
-if [ -d "./build" ]; then rm -Rf "./build"; fi
-if [ -d "./dist" ]; then rm -Rf "./dist"; fi
-if [ -d "./docker-alias" ]; then rm -Rf "./docker-alias"; fi
-if [ -d "./.pydeps" ]; then rm -Rf "./.pydeps"; fi
-mkdir "./.pydeps"
+function cleanup() {
+    if [ -f "docker-alias.spec" ]; then rm "docker-alias.spec"; fi
+    if [ -d "./build" ]; then rm -Rf "./build"; fi
+    if [ -d "./dist" ]; then rm -Rf "./dist"; fi
+    if [ -d "./$ZIP_DIR" ]; then rm -Rf "./$ZIP_DIR"; fi
+    if [ -d "./.pydeps" ]; then rm -Rf "./.pydeps"; fi
+    mkdir "./.pydeps"
+}
 
-pip3  install --target ".pydeps" --upgrade -r requirements.txt
-python3 .pydeps/bin/pyinstaller -y cli.py
-python3 .pydeps/bin/pyinstaller -y daemon.py
+function build_linux() {
+    cleanup
+    pip3 install --target ".pydeps" --upgrade -r requirements.txt
+    pyinstaller -y --clean --noupx -F cli.py
+    pyinstaller -y --clean --noupx -F daemon.py
 
-mkdir 'docker-alias'
-cp -R dist/cli 'docker-alias'
-cp -R dist/daemon 'docker-alias'
-cp docker-alias.service 'docker-alias/daemon'
-cp setup.sh 'docker-alias'
+    mkdir "$ZIP_DIR"
+    cp -R dist/cli "$ZIP_DIR"
+    cp -R dist/daemon "$ZIP_DIR"
+    cp linux/docker-alias.service "$ZIP_DIR"
+    cp linux/setup.sh "$ZIP_DIR"
+    zip -r "$ZIP_LINUX64" "$ZIP_DIR"
+}
 
-zip -r docker-alias.zip 'docker-alias'
+if [ "$1" == "all" ]; then
+  if [ -f "./$ZIP_LINUX64" ]; then rm "./$ZIP_LINUX64"; fi
+  build_linux
+fi

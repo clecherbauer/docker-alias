@@ -2,7 +2,7 @@
 Description=Python Demo Service
 
 [Service]
-ExecStart=%h/.local/docker-alias/daemon/daemon
+ExecStart=%h/.local/docker-alias/daemon
 Environment=PYTHONUNBUFFERED=1
 Restart=on-failure
 

@@ -1,5 +1,4 @@
 # docker-alias
-
 Enables you to use docker-containers to execute commands as if they where installed on your system.
 
 ### Requirements:
@@ -8,13 +7,11 @@ Enables you to use docker-containers to execute commands as if they where instal
 - lebokus/bindfs:latest (optional)
 
 ### Installation
-
-`wget -q -O - "https://gitlab.com/clecherbauer/tools/docker-alias/-/raw/v2.0.3/linux/online-installer.sh" | bash`
+`wget -q -O - "https://gitlab.com/clecherbauer/tools/docker-alias/-/raw/v2.0.4/linux/online-installer.sh" | bash`
 
 ### Usage
-
-1. create a new docker-alias.yml and define your volumes and commands:
-
+1. start docker-alias-daemon with `docker-alias-daemon start`
+2. create a new docker-alias.yml and define your volumes and containers / commands:
 ```
 volumes:
   bindfs:
@@ -24,26 +21,6 @@ volumes:
       map: "$UID/0:@$UID/@0"
 
 containers:
-  python:
-    build:
-      context: .
-      dockerfile: .devops/docker/alias/python/Dockerfile
-    volumes:
-      - bindfs:$DEFAULT_WORKING_DIR
-      - $SSH_AUTH_SOCK:/ssh-auth.sock
-    commands:
-      - python
-      - pip3:
-          path: /usr/local/bin/pip3
-      - flake8
-      - autopep8
-      - prospector
-      - prospector-html
-    env_file: .env
-    environment:
-      - PYTHONPATH=$DEFAULT_WORKING_DIR
-    entrypoint: /usr/local/bin/entrypoint.sh
-
   node:
     image: node
     volumes:
@@ -52,14 +29,9 @@ containers:
     commands:
       - node
       - npm
-      - npx
-      - vue
     env_file: .env
     environment:
       - SSH_AUTH_SOCK=/ssh-auth.sock
 ```
-
-2. register your new docker-alias.yml with `docker-alias add`
-
-3. try out your commands
-
+3. register your new docker-alias.yml with `docker-alias add`
+4. type in `node`

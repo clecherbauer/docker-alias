@@ -6,3 +6,4 @@ pyinstaller
 checksumdir
 daemoniker
 click
+psutil

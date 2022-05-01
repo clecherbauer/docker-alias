@@ -39,6 +39,7 @@ class Container:
     stay_in_root: bool
     volumes: List[Volume]
     working_dir: str
+    user: str
 
 
 class ContainerUtil:
@@ -96,6 +97,7 @@ class ContainerUtil:
                 environment=configured_container.get('environment', []),
                 fs_location=fs_location,
                 fs_location_hash=fs_location_hash,
+                user=configured_container.get('user', None),
             )
             containers.append(container)
         return containers

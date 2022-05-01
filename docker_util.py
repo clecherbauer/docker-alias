@@ -309,6 +309,10 @@ class DockerUtil:
             arguments.append('-w')
             arguments.append(DEFAULT_WORKING_DIR)
 
+        if container.user:
+            arguments.append('--user')
+            arguments.append(container.user)
+
         return arguments
 
     @staticmethod

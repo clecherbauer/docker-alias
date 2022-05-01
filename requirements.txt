@@ -1,4 +1,8 @@
+flake8
+autopep8
 docker
 pyyaml
 pyinstaller
 checksumdir
+daemoniker
+click

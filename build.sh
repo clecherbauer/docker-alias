@@ -16,18 +16,17 @@ function cleanup() {
 function build_linux() {
     cleanup
     pip3 install --target ".pydeps" --upgrade -r requirements.txt
-    pyinstaller -y --clean --noupx -F cli.py
-    pyinstaller -y --clean --noupx -F daemon.py
+    pyinstaller -y --clean --noupx -F docker-alias.py
+    pyinstaller -y --clean --noupx -F docker-alias-daemon.py
 
     mkdir "$ZIP_DIR"
-    cp -R dist/cli "$ZIP_DIR"
-    cp -R dist/daemon "$ZIP_DIR"
-    cp linux/docker-alias.service "$ZIP_DIR"
+    cp -R dist/docker-alias "$ZIP_DIR"
+    cp -R dist/docker-alias-daemon "$ZIP_DIR"
     cp linux/setup.sh "$ZIP_DIR"
     zip -r "$ZIP_LINUX64" "$ZIP_DIR"
 }
 
 if [ "$1" == "all" ]; then
-  if [ -f "./$ZIP_LINUX64" ]; then rm "./$ZIP_LINUX64"; fi
-  build_linux
+    if [ -f "./$ZIP_LINUX64" ]; then rm "./$ZIP_LINUX64"; fi
+    build_linux
 fi

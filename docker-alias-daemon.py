@@ -1,22 +1,32 @@
 import os.path
 import time
+import traceback
+
+import click
+import daemoniker
 
 from config import INIConfig, YAMLConfigUtil, FAKE_BINARY_DIR
+
+DEFAULT_PID_FILE = os.path.join(INIConfig().get_config_dir(), "docker-alias.pid")
+
+
+def get_pid_file() -> str:
+    return os.environ.get("DOCKER_ALIAS_PID_FILE", DEFAULT_PID_FILE)
 
 
 class Daemon:
     boot = True
 
     @staticmethod
-    def get_fake_binary_root_path():
+    def get_fake_binary_root_path() -> str:
         return os.path.join(FAKE_BINARY_DIR)
 
-    def create_fake_binary_root(self):
+    def create_fake_binary_root(self) -> None:
         docker_alias_binary_dir = self.get_fake_binary_root_path()
         if not os.path.isdir(docker_alias_binary_dir):
             os.mkdir(docker_alias_binary_dir)
 
-    def create_fake_binary(self, name):
+    def create_fake_binary(self, name) -> None:
         name = name.replace('/', '')
         file_path = os.path.join(self.get_fake_binary_root_path(), name)
         if not os.path.isfile(file_path):
@@ -26,12 +36,12 @@ class Daemon:
                 file.close()
             os.chmod(file_path, 0o775)
 
-    def remove_fake_binary(self, name):
+    def remove_fake_binary(self, name) -> None:
         file_path = os.path.join(self.get_fake_binary_root_path(), name)
         if os.path.isfile(file_path):
             os.remove(file_path)
 
-    def get_defined_fake_binaries(self):
+    def get_defined_fake_binaries(self) -> []:
         ini_config = INIConfig()
         yaml_paths = ini_config.get_yaml_paths()
         defined_fake_binaries = []
@@ -56,24 +66,49 @@ class Daemon:
                             defined_fake_binaries.append(container_key)
         return defined_fake_binaries
 
-    def run(self):
+    def run(self) -> None:
         while True:
-            defined_fake_binaries = self.get_defined_fake_binaries()
-            fake_binaries = os.listdir(self.get_fake_binary_root_path())
-            for fake_binary in fake_binaries:
-                if self.boot or fake_binary not in defined_fake_binaries:
-                    self.remove_fake_binary(fake_binary)
+            try:
+                defined_fake_binaries = self.get_defined_fake_binaries()
+                fake_binaries = os.listdir(self.get_fake_binary_root_path())
+                for fake_binary in fake_binaries:
+                    if self.boot or fake_binary not in defined_fake_binaries:
+                        self.remove_fake_binary(fake_binary)
 
-            for defined_fake_binary in defined_fake_binaries:
-                self.create_fake_binary(defined_fake_binary)
-            self.boot = False
-            time.sleep(10)
+                for defined_fake_binary in defined_fake_binaries:
+                    self.create_fake_binary(defined_fake_binary)
+                self.boot = False
+                time.sleep(10)
+            except Exception:
+                traceback.print_exc()
+
+
+@click.group()
+def cli() -> None:
+    pass
+
+
+@cli.command("start")
+@click.option("--no-daemon", is_flag=True, flag_value=True, default=False)
+def start(no_daemon) -> None:
+    if no_daemon:
+        try:
+            Daemon().run()
+        except KeyboardInterrupt:
+            pass
+    else:
+        with daemoniker.Daemonizer() as (_, daemonizer):
+            is_parent, *_ = daemonizer(get_pid_file())
+        Daemon().run()
+
+
+@cli.command("stop")
+def stop() -> None:
+    if not os.path.isfile(get_pid_file()):
+        print("Warning: docker-alias daemon was not running!")
+    else:
+        daemoniker.send(get_pid_file(), daemoniker.SIGINT)
 
 
 if __name__ == '__main__':
-    try:
-        Daemon().run()
-    except KeyboardInterrupt:
-        pass
-    except Exception as exception:
-        print(exception)
+    cli()

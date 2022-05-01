@@ -7,7 +7,7 @@ from typing import List
 
 import yaml
 
-VERSION = 'v2.0.2'
+VERSION = 'v2.0.3'
 YAML_CONFIG_FILE_NAME = 'docker-alias.yml'
 INI_CONFIG_FILE_NAME = 'config.ini'
 FAKE_BINARY_DIR = os.path.join(str(Path.home()), '.local', 'docker-alias', 'bin')

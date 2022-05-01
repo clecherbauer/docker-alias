@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-VERSION="v2.0.2"
+VERSION="v2.0.3"
 SOURCE_FILE="docker-alias.linux64.zip"
 SOURCE_DIR="docker-alias"
 
@@ -11,8 +11,8 @@ wget $URL
 
 unzip -o "$SOURCE_FILE"
 (
-  cd "$SOURCE_DIR"
-  ./setup.sh install
+    cd "$SOURCE_DIR"
+    ./setup.sh install
 )
 
 rm -Rf "$SOURCE_DIR"

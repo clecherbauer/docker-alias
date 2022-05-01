@@ -20,3 +20,4 @@ containers:
     environment:
       - SSH_AUTH_SOCK=/ssh-auth.sock
       - PYTHONPATH=$DEFAULT_WORKING_DIR/.pydeps
+      - PATH=$DEFAULT_WORKING_DIR/.pydeps/bin:\$PATH

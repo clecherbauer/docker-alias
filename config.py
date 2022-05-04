@@ -7,10 +7,11 @@ from typing import List
 
 import yaml
 
-VERSION = 'v2.1.0'
+VERSION = 'v2.2.0'
 YAML_CONFIG_FILE_NAME = 'docker-alias.yml'
 INI_CONFIG_FILE_NAME = 'config.ini'
-FAKE_BINARY_DIR = os.path.join(str(Path.home()), '.local', 'docker-alias', 'bin')
+DOCKER_ALIAS_HOME = os.path.join(str(Path.home()), '.local', 'docker-alias')
+FAKE_BINARY_DIR = os.path.join(DOCKER_ALIAS_HOME, 'bin')
 INI_CONFIG_DIR = os.path.join(str(Path.home()), '.config', 'docker-alias')
 INI_CONFIG_FILE_PATH = os.path.join(INI_CONFIG_DIR, INI_CONFIG_FILE_NAME)
 DEFAULT_WORKING_DIR = '/app'

@@ -10,7 +10,7 @@ from typing import List
 import docker
 from checksumdir import dirhash
 
-from config import INIConfig, DEFAULT_WORKING_DIR
+from config import INIConfig, DEFAULT_WORKING_DIR, DOCKER_ALIAS_HOME
 from container import Container, Command
 from volume import VolumeWithDriver, SimpleVolume
 from subprocess import Popen
@@ -257,10 +257,11 @@ class DockerUtil:
         if _tty:
             cmd_base = cmd_base + ['-it']
         cmd_base = cmd_base + self.build_docker_run_arguments(container)
-        return cmd_base + [
-            container.image,
-            internal_command
-        ] + attributes
+        cmd_base.append(container.image)
+        if container.inject_user_switcher:
+            cmd_base = cmd_base + ['/switch_user']
+        cmd_base.append(internal_command)
+        return cmd_base + attributes
 
     def build_docker_run_arguments(self, container: Container) -> List[str]:
         arguments = []
@@ -286,6 +287,11 @@ class DockerUtil:
                     )
                 )
 
+        user_switcher_binary = os.path.join(DOCKER_ALIAS_HOME, 'switch_user')
+        if container.inject_user_switcher and os.path.isfile(user_switcher_binary):
+            arguments.append('-v')
+            arguments.append('{user_switcher_binary}:/switch_user'.format(user_switcher_binary=user_switcher_binary))
+
         if container.entrypoint:
             arguments.append('--entrypoint')
             arguments.append(container.entrypoint)
@@ -298,6 +304,9 @@ class DockerUtil:
             for environment in container.environment:
                 arguments.append('-e')
                 arguments.append(environment)
+
+        arguments.append('-e')
+        arguments.append("UID_HOST=" + str(os.getuid()))
 
         if not container.stay_in_root:
             arguments.append('-w')

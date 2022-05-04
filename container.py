@@ -40,6 +40,7 @@ class Container:
     volumes: List[Volume]
     working_dir: str
     user: str
+    inject_user_switcher: bool
 
 
 class ContainerUtil:
@@ -98,6 +99,7 @@ class ContainerUtil:
                 fs_location=fs_location,
                 fs_location_hash=fs_location_hash,
                 user=configured_container.get('user', None),
+                inject_user_switcher=bool(configured_container.get('inject_user_switcher', False))
             )
             containers.append(container)
         return containers

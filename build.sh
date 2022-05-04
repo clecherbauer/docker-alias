@@ -22,6 +22,7 @@ function build_linux() {
     mkdir "$ZIP_DIR"
     cp -R dist/docker-alias "$ZIP_DIR"
     cp -R dist/docker-alias-daemon "$ZIP_DIR"
+    cp -R switch_user "$ZIP_DIR"
     cp linux/setup.sh "$ZIP_DIR"
     zip -r "$ZIP_LINUX64" "$ZIP_DIR"
 }

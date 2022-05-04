@@ -1,0 +1,48 @@
+#!/usr/bin/env sh
+set -e
+
+DYNAMIC_USER='docker_alias_dyn_user'
+
+switchToDynamicUser() {
+    userExists() {
+        id "$1" > /dev/null 2>&1
+    }
+    if [ "$UID_HOST" = "" ]; then
+        print "UID_HOST not present!"
+    fi
+    USERNAME="$1"
+    if userExists "$UID_HOST"; then
+        modifyUser "$(id -nu "$UID_HOST")" 978654321 978654321
+        modifyUser "$USERNAME" "$UID_HOST" "$UID_HOST"
+    else
+      HOME="/home/$DYNAMIC_USER"
+      mkdir "$HOME"
+      useradd "$USERNAME" -d "$HOME" --no-log-init -u "$UID_HOST"
+      chown -R $USERNAME:$USERNAME $HOME
+    fi
+}
+
+modifyUser() {
+    _USERNAME=$1
+    _NEWUID=$2
+    _NEWGID=$3
+
+    if ! userExists "$_USERNAME"; then
+      echo "User does not exist: '$_USERNAME'"
+      exit 1
+    fi
+    _GROUPNAME=$(id -gn "$_USERNAME")
+    _OLD_UID=$(id -u "$_USERNAME")
+    _OLD_GID=$(id -g "$_USERNAME")
+    _HOME="$(eval echo ~_USERNAME)"
+
+    userdel "$_USERNAME"
+    useradd "$_USERNAME" -d "$_HOME" --no-log-init -u "$_NEWUID"
+    groupmod -g "$_NEWGID" "$_GROUPNAME"
+    find "$_HOME" -ignore_readdir_race -user "$_OLDUID" -exec chown -h "$_NEWUID" {} \;
+    find "$_HOME" -ignore_readdir_race -group "$_OLDGID" -exec chgrp -h "$_NEWGID" {} \;
+    usermod -g "$_NEWGID" "$_USERNAME"
+}
+
+switchToDynamicUser $DYNAMIC_USER
+runuser -u "$DYNAMIC_USER" -- $@

@@ -15,7 +15,7 @@ DOCKER_ALIAS_PATH="PATH=\$HOME/.local/docker-alias/bin:\$PATH"
 
 function install() {
     if [ -x "$(command -v docker-alias-daemon)" ]; then
-        docker-alias-daemon stop
+        docker-alias-daemon stop || true
     fi
     if [ -d "$DOCKER_ALIAS_ROOT" ]; then rm -Rf "$DOCKER_ALIAS_ROOT"; fi
     if [ ! -d "$USER_BIN_DIR" ]; then mkdir "$USER_BIN_DIR"; fi
@@ -46,7 +46,7 @@ function install() {
 
 function uninstall() {
     if [ -x "$(command -v docker-alias-daemon)" ]; then
-        docker-alias-daemon stop
+        docker-alias-daemon stop || true
     fi
     if [ -d "$DOCKER_ALIAS_ROOT" ]; then rm -Rf "$DOCKER_ALIAS_ROOT"; fi
     if [ ! -d "$DOCKER_ALIAS_ROOT" ]; then rm -Rf "$DOCKER_ALIAS_ROOT"; fi

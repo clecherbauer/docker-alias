@@ -1,9 +1,11 @@
 import os.path
+import sys
 import time
 import traceback
 
 import click
 import daemoniker
+from psutil import pid_exists
 
 from config import INIConfig, YAMLConfigUtil, FAKE_BINARY_DIR
 
@@ -90,7 +92,7 @@ def cli() -> None:
 
 @cli.command("start")
 @click.option("--no-daemon", is_flag=True, flag_value=True, default=False)
-def start(no_daemon) -> None:
+def start(no_daemon: bool) -> None:
     if no_daemon:
         try:
             Daemon().run()
@@ -98,14 +100,22 @@ def start(no_daemon) -> None:
             pass
     else:
         with daemoniker.Daemonizer() as (_, daemonizer):
-            is_parent, *_ = daemonizer(get_pid_file())
-        Daemon().run()
+            try:
+                is_parent, *_ = daemonizer(get_pid_file())
+                Daemon().run()
+            except SystemExit as e:
+                if str(e) == 'Unable to acquire PID file.':
+                    with open(get_pid_file()) as f:
+                        pid = int(f.read())
+                    if pid_exists(pid):
+                        sys.exit(0)
+                    os.remove(get_pid_file())
 
 
 @cli.command("stop")
 def stop() -> None:
     if not os.path.isfile(get_pid_file()):
-        print("Warning: docker-alias daemon was not running!")
+        print("Warning: docker-alias was not running!")
     else:
         daemoniker.send(get_pid_file(), daemoniker.SIGINT)
 

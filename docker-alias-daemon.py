@@ -7,7 +7,7 @@ import click
 import daemoniker
 from psutil import pid_exists
 
-from config import INIConfig, YAMLConfigUtil, FAKE_BINARY_DIR
+from lib.config import INIConfig, YAMLConfigUtil, FAKE_BINARY_DIR
 
 DEFAULT_PID_FILE = os.path.join(INIConfig().get_config_dir(), "docker-alias.pid")
 

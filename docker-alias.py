@@ -2,9 +2,9 @@ import argparse
 import os.path
 import sys
 
-from config import INIConfig, YAML_CONFIG_FILE_NAME, INI_CONFIG_FILE_PATH, VERSION
-from docker_util import DockerUtil
-from container import ContainerUtil
+from lib.config import INIConfig, YAML_CONFIG_FILE_NAME, INI_CONFIG_FILE_PATH, VERSION
+from lib.docker_util import DockerUtil
+from lib.container import ContainerUtil
 
 
 class DockerAliasCLI(object):
@@ -127,7 +127,7 @@ Version: {version}
                 command_list[container] = " ".join(DockerUtil(self.quiet).build_command(container))
 
         for key, cmd in command_list.items():
-            print(key + ": " + cmd)
+            print(key + ": " + cmd + "\n")
 
     def run(self):
         container_util = ContainerUtil()

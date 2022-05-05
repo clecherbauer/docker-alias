@@ -10,9 +10,9 @@ from typing import List
 import docker
 from checksumdir import dirhash
 
-from config import INIConfig, DEFAULT_WORKING_DIR, DOCKER_ALIAS_HOME
-from container import Container, Command
-from volume import VolumeWithDriver, SimpleVolume
+from lib.config import INIConfig, DEFAULT_WORKING_DIR, DOCKER_ALIAS_HOME
+from lib.container import Container, Command
+from lib.volume import VolumeWithDriver, SimpleVolume
 from subprocess import Popen
 
 
@@ -307,6 +307,16 @@ class DockerUtil:
 
         arguments.append('-e')
         arguments.append("UID_HOST=" + str(os.getuid()))
+
+        for network in self.client.networks.list():
+            if network.name == container.docker_compose_project_name + "_default":
+                arguments.append('--network')
+                arguments.append(network.name)
+
+        for network in container.networks:
+            if not network == 'default':
+                arguments.append('--network')
+                arguments.append(network)
 
         if not container.stay_in_root:
             arguments.append('-w')

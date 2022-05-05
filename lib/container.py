@@ -4,8 +4,8 @@ from copy import copy
 from dataclasses import dataclass
 from typing import List
 
-from config import YAMLConfig, YAMLConfigUtil, DEFAULT_WORKING_DIR
-from volume import Volume, VolumeWithDriver, SimpleVolume
+from lib.config import YAMLConfig, YAMLConfigUtil, DEFAULT_WORKING_DIR
+from lib.volume import Volume, VolumeWithDriver, SimpleVolume
 
 
 @dataclass
@@ -25,6 +25,7 @@ class Container:
     auto_rebuild_images: bool
     build: Build
     commands: List[Command]
+    docker_compose_project_name: str
     entrypoint: str
     env_file: str
     environment: List[str]
@@ -41,6 +42,7 @@ class Container:
     working_dir: str
     user: str
     inject_user_switcher: bool
+    networks: List[str]
 
 
 class ContainerUtil:
@@ -80,10 +82,13 @@ class ContainerUtil:
             fs_location = os.path.dirname(os.path.realpath(yaml_config.path))
             fs_location_hash = int(hashlib.sha1(fs_location.encode('utf-8')).hexdigest(), 16) % (10 ** 8)
 
+            docker_compose_project_name = os.path.basename(fs_location).replace('-', '_')
+
             container = Container(
                 auto_rebuild_images=bool(configured_container.get('auto_rebuild_images', True)),
                 build=build,
                 commands=self.build_commands(configured_container),
+                docker_compose_project_name=docker_compose_project_name,
                 entrypoint=configured_container.get('entrypoint'),
                 env_file=configured_container.get('env_file'),
                 image=configured_container.get('image'),
@@ -99,7 +104,8 @@ class ContainerUtil:
                 fs_location=fs_location,
                 fs_location_hash=fs_location_hash,
                 user=configured_container.get('user', None),
-                inject_user_switcher=bool(configured_container.get('inject_user_switcher', False))
+                inject_user_switcher=bool(configured_container.get('inject_user_switcher', False)),
+                networks=configured_container.get('networks', [])
             )
             containers.append(container)
         return containers

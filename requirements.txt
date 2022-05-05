@@ -7,3 +7,4 @@ checksumdir
 daemoniker
 click
 psutil
+terminal-animation

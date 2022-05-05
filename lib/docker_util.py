@@ -7,6 +7,7 @@ import termios
 import tty
 from typing import List
 
+import animation
 import docker
 from checksumdir import dirhash
 
@@ -93,6 +94,9 @@ class DockerUtil:
             return self.client.images.pull(parts[0], parts[1])
         return self.client.images.pull(image_name)
 
+    clock = ['-', '\\', '|', '/']
+
+    @animation.wait(clock)
     def build_image(self, container: Container):
         image_name = self.get_image_name(container)
         if not self.quiet and not container.quiet:

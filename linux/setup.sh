@@ -20,7 +20,7 @@ function install() {
     if [ -d "$DOCKER_ALIAS_ROOT" ]; then rm -Rf "$DOCKER_ALIAS_ROOT"; fi
     if [ ! -d "$USER_BIN_DIR" ]; then mkdir -p "$USER_BIN_DIR"; fi
     if [ ! -d "$DOCKER_ALIAS_ROOT" ]; then mkdir "$DOCKER_ALIAS_ROOT"; fi
-    if [ ! -d "$DOCKER_ALIAS_CONFIG_ROOT" ]; then mkdir "$DOCKER_ALIAS_CONFIG_ROOT"; fi
+    if [ ! -d "$DOCKER_ALIAS_CONFIG_ROOT" ]; then mkdir -p "$DOCKER_ALIAS_CONFIG_ROOT"; fi
     if [ ! -d "$DOCKER_ALIAS_BINARY_ROOT" ]; then mkdir "$DOCKER_ALIAS_BINARY_ROOT"; fi
     if [ -L "$DOCKER_ALIAS_CLI_SYMLINK" ]; then rm "$DOCKER_ALIAS_CLI_SYMLINK"; fi
     if [ -L "$DOCKER_ALIAS_DAEMON_SYMLINK" ]; then rm "$DOCKER_ALIAS_DAEMON_SYMLINK"; fi

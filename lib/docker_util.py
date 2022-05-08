@@ -16,6 +16,8 @@ from lib.container import Container, Command
 from lib.volume import VolumeWithDriver, SimpleVolume
 from subprocess import Popen
 
+clock = ['-', '\\', '|', '/']
+
 
 class DockerUtil:
 
@@ -86,20 +88,24 @@ class DockerUtil:
         return False
 
     def pull_image(self, container: Container):
+        wait_animation = animation.Wait(clock)
         if not self.quiet and not container.quiet:
+            wait_animation.start()
             print('Pulling Image ' + container.image)
         image_name = container.image
         parts = image_name.split(':')
         if len(parts) > 1:
-            return self.client.images.pull(parts[0], parts[1])
-        return self.client.images.pull(image_name)
+            self.client.images.pull(parts[0], parts[1])
+            wait_animation.stop()
+            return
+        self.client.images.pull(image_name)
+        wait_animation.stop()
 
-    clock = ['-', '\\', '|', '/']
-
-    @animation.wait(clock)
     def build_image(self, container: Container):
+        wait_animation = animation.Wait(clock)
         image_name = self.get_image_name(container)
         if not self.quiet and not container.quiet:
+            wait_animation.start()
             print('Building Image ' + image_name)
         context = self.get_image_context(container)
         self.client.images.build(
@@ -113,6 +119,7 @@ class DockerUtil:
             config.add_section('ImageBuildHashes')
         config.set('ImageBuildHashes', image_name.replace(':', '_'), self.hash_docker_build_dir(container))
         INIConfig().save_config(config)
+        wait_animation.stop()
 
     def get_image_name(self, container: Container) -> str:
         return self.image_name_pattern.format(

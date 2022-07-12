@@ -82,7 +82,7 @@ class ContainerUtil:
             fs_location = os.path.dirname(os.path.realpath(yaml_config.path))
             fs_location_hash = int(hashlib.sha1(fs_location.encode('utf-8')).hexdigest(), 16) % (10 ** 8)
 
-            docker_compose_project_name = os.path.basename(fs_location).replace('-', '_')
+            docker_compose_project_name = os.path.basename(fs_location)
 
             container = Container(
                 auto_rebuild_images=bool(configured_container.get('auto_rebuild_images', True)),

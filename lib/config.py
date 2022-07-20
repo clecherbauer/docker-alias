@@ -7,7 +7,7 @@ from typing import List
 
 import yaml
 
-VERSION = 'v2.2.7'
+VERSION = 'v2.2.8'
 YAML_CONFIG_FILE_NAME = 'docker-alias.yml'
 INI_CONFIG_FILE_NAME = 'config.ini'
 DOCKER_ALIAS_HOME = os.path.join(str(Path.home()), '.local', 'docker-alias')
@@ -106,7 +106,7 @@ class YAMLConfigUtil:
 
     def find_yaml_configs(self) -> List[YAMLConfig]:
         config_list = self.find_yaml_configs_recursive(Path(os.getcwd()))
-        config_list.reverse()
+        config_list = sorted(config_list, key=lambda x: len(x.path), reverse=True)
         return config_list
 
     def find_yaml_configs_recursive(self, path: Path) -> List[YAMLConfig]:

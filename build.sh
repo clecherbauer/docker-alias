@@ -3,6 +3,7 @@ set -e
 
 ZIP_DIR="docker-alias"
 ZIP_LINUX64="docker-alias.linux64.zip"
+ZIP_WIN64="docker-alias.win64.zip"
 
 function cleanup() {
     if [ -f "docker-alias.spec" ]; then rm "docker-alias.spec"; fi
@@ -27,7 +28,27 @@ function build_linux() {
     zip -r "$ZIP_LINUX64" "$ZIP_DIR"
 }
 
+function build_windows() {
+    cleanup
+    pyinstaller-windows -y --clean --hiddenimport win32timezone --hiddenimport --runtime-tmpdir=. --onefile docker-alias.py
+    mkdir "$ZIP_DIR"
+    cp -R dist/docker-alias.exe "$ZIP_DIR/docker-alias.exe"
+    #cp windows/setup.ps1 "$ZIP_DIR"
+    zip -r "$ZIP_WIN64" "$ZIP_DIR"
+}
+
 if [ "$1" == "all" ]; then
     if [ -f "./$ZIP_LINUX64" ]; then rm "./$ZIP_LINUX64"; fi
     build_linux
+    build_windows
+fi
+
+if [ "$1" == "linux" ]; then
+    if [ -f "./$ZIP_LINUX64" ]; then rm "./$ZIP_LINUX64"; fi
+    build_linux
+fi
+
+if [ "$1" == "windows" ]; then
+    if [ -f "./$ZIP_WIN64" ]; then rm "./$ZIP_WIN64"; fi
+    build_windows
 fi

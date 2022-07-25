@@ -108,12 +108,16 @@ class DockerUtil:
             wait_animation.start()
             print('Building Image ' + image_name)
         context = self.get_image_context(container)
-        self.client.images.build(
-            tag=image_name,
-            path=context,
-            dockerfile=os.path.join(context, container.build.dockerfile),
-            rm=True
-        )
+        try:
+            self.client.images.build(
+                tag=image_name,
+                path=context,
+                dockerfile=os.path.join(context, container.build.dockerfile),
+                rm=True
+            )
+        except Exception as e:
+            wait_animation.stop()
+            print(e)
         config = INIConfig().get_config()
         if not config.has_section('ImageBuildHashes'):
             config.add_section('ImageBuildHashes')
@@ -130,9 +134,14 @@ class DockerUtil:
     @staticmethod
     def get_image_context(container: Container) -> str:
         context = container.build.context
-        if container.build.context.startswith('.'):
-            return context[:0] + container.fs_location + context[0 + 1:]
-        return context
+        if container.build.context == '.':
+            return container.fs_location
+        if container.build.context.startswith('./'):
+            return container.fs_location + context[2:]
+        if container.build.context.startswith('/'):
+            return container.build.context
+
+        return os.path.join(container.fs_location, context)
 
     def hash_docker_build_dir(self, container: Container):
         context = self.get_image_context(container)
@@ -224,7 +233,7 @@ class DockerUtil:
                         os.write(sys.stdout.fileno(), o)
         finally:
             # restore tty settings back
-            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_tty)
+            termios.tcsetattr(sys.stdin, termios.TCSAFLUSH, old_tty)
         return p.poll()
 
     def exec_docker_subprocess_stdout_pipe(self, container, command: Command = None, attributes: List = None):

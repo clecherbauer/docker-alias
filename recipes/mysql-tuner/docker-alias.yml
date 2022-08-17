@@ -1,0 +1,8 @@
+containers:
+  mysql-tuner:
+    image: exoplatform/mysqltuner
+    volumes:
+      - $YAML_LOCATION_DIR:$DEFAULT_WORKING_DIR
+    commands:
+      - mysql-tuner:
+          path: perl /mysqltuner.pl --host database --user root --pass root --forcemem 4096

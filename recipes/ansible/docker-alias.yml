@@ -1,0 +1,14 @@
+containers:
+  ansible:
+    image: registry.gitlab.com/clecherbauer/docker-images/ansible:2-debian-stretch
+    volumes:
+      - $YAML_LOCATION_DIR:$DEFAULT_WORKING_DIR
+      - $SSH_AUTH_SOCK:/ssh-auth.sock
+    commands:
+      - ansible
+      - ansible-playbook
+      - ansible-vault
+      - ansible-galaxy
+    environment:
+      - SSH_AUTH_SOCK=/ssh-auth.sock
+    inject_user_switcher: true

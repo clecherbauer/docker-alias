@@ -1,0 +1,17 @@
+containers:
+  node:
+    build:
+      context: .docker-alias
+      dockerfile: /Dockerfile
+    volumes:
+      - $YAML_LOCATION_DIR:$DEFAULT_WORKING_DIR
+    commands:
+      - node
+      - npm
+      - npx
+      - nest
+      - eslint
+      - ng
+      - yarn
+    user: "$UID"
+

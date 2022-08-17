@@ -1,0 +1,11 @@
+containers:
+  azure:
+    image: mcr.microsoft.com/azure-cli:latest
+    volumes:
+      - $HOME:$HOME
+    commands:
+      - az
+    environment:
+      - HOME=$HOME
+    user: "$UID"
+

@@ -1,0 +1,9 @@
+containers:
+  openapi-generator-cli:
+    image: openapitools/openapi-generator-cli
+    volumes:
+      - $YAML_LOCATION_DIR:$DEFAULT_WORKING_DIR
+    commands:
+      - openapi-generator-cli:
+          path: /usr/local/bin/docker-entrypoint.sh
+    user: "$UID"

@@ -18,6 +18,7 @@ class Build:
 class Command:
     name: str
     path: str
+    default_params: List[str]
 
 
 @dataclass
@@ -119,13 +120,15 @@ class ContainerUtil:
                 if isinstance(configured_command, str):
                     command = Command(
                         name=configured_command,
-                        path=None
+                        path=None,
+                        default_params=[]
                     )
 
                 if isinstance(configured_command, dict):
                     command = Command(
                         name=list(configured_command.keys())[0],
-                        path=list(configured_command.values())[0].get('path')
+                        path=list(configured_command.values())[0].get('path'),
+                        default_params=list(configured_command.values())[0].get('default_params', [])
                     )
                 if command:
                     commands.append(command)

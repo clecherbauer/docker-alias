@@ -281,7 +281,7 @@ class DockerUtil:
         if container.inject_user_switcher:
             cmd_base = cmd_base + ['/switch_user']
         cmd_base.append(internal_command)
-        return cmd_base + attributes
+        return cmd_base + command.default_params + attributes
 
     def build_docker_run_arguments(self, container: Container) -> List[str]:
         arguments = []

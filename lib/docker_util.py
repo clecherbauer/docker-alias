@@ -29,6 +29,7 @@ class DockerUtil:
     container_name_pattern = 'docker_alias_{fs_location_hash}_{container_name}'
     image_name_pattern = 'docker_alias_{fs_location_hash}_{container_name}:latest'
     quiet = False
+    container_name = None
 
     def exec_docker(self, container: Container, command: Command = None, attributes: List = None) -> int:
         if attributes is None:
@@ -150,15 +151,22 @@ class DockerUtil:
 
     def remove_container(self, container: Container):
         container_name = self.get_container_name(container)
-        for container in self.client.containers.list(all=True):
-            if container_name == container.name:
-                container.remove()
+        for current_container in self.client.containers.list(all=True):
+            if container_name == current_container.name:
+                current_container.remove()
 
     def get_container_name(self, container: Container):
-        return self.container_name_pattern.format(
+        if self.container_name is None:
+            container_name = self.container_name_pattern.format(
             fs_location_hash=container.fs_location_hash,
             container_name=container.name,
-        )
+            )
+            count = 0
+            for current_container in self.client.containers.list(all=True):
+                if container_name in current_container.name:
+                    count = count + 1
+            self.container_name = container_name + '_' + str(count)
+        return self.container_name
 
     def create_volumes(self, container):
         if container.volumes:
@@ -177,7 +185,7 @@ class DockerUtil:
                 if isinstance(volume, VolumeWithDriver):
                     volume_name = self.volume_name_pattern.format(
                         fs_location_hash=container.fs_location_hash,
-                        container_name=container.name,
+                        container_name=self.get_container_name(container),
                         volume_name=volume.name
                     )
                     self.remove_volume(volume_name)

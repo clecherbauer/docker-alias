@@ -13,7 +13,7 @@ Enables you to use docker-containers to execute commands as if they are installe
 - lebokus/bindfs:latest (optional)
 
 ### Installation
-`wget -q -O - "https://gitlab.com/clecherbauer/tools/docker-alias/-/raw/v2.2.9/linux/online-installer.sh" | bash`
+`wget -q -O - "https://gitlab.com/clecherbauer/tools/docker-alias/-/raw/v2.2.10/linux/online-installer.sh" | bash`
 
 ### Usage
 1. start docker-alias-daemon with `docker-alias-daemon start`

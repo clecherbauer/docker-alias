@@ -44,6 +44,7 @@ class Container:
     user: str
     inject_user_switcher: bool
     networks: List[str]
+    ports: List[str]
 
 
 class ContainerUtil:
@@ -106,7 +107,8 @@ class ContainerUtil:
                 fs_location_hash=fs_location_hash,
                 user=configured_container.get('user', None),
                 inject_user_switcher=bool(configured_container.get('inject_user_switcher', False)),
-                networks=configured_container.get('networks', [])
+                networks=configured_container.get('networks', []),
+                ports=configured_container.get('ports', [])
             )
             containers.append(container)
         return containers

@@ -346,6 +346,10 @@ class DockerUtil:
                 arguments.append('--network')
                 arguments.append(network)
 
+        for port in container.ports:
+            arguments.append('-p')
+            arguments.append(port)
+
         if not container.stay_in_root:
             arguments.append('-w')
             arguments.append(self.calculate_path_segment(container))

@@ -1,0 +1,26 @@
+containers:
+  node:
+    build:
+      context: .docker-alias
+      dockerfile: node/Dockerfile
+    volumes:
+      - $YAML_LOCATION_DIR:$HOME
+      - $YAML_LOCATION_DIR:$DEFAULT_WORKING_DIR
+    commands:
+      - node
+      - npm
+      - npx
+      - nest
+      - eslint
+      - ng
+      - yarn
+    environment:
+      - HOME=$HOME
+    user: "$UID"
+    command_pattern_conditional_config:
+      - "yarn serve":
+        ports:
+          - "8080:8080"
+      - "npm serve":
+        ports:
+          - "8080:8080"

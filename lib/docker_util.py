@@ -12,7 +12,7 @@ import docker
 from checksumdir import dirhash
 
 from lib.config import INIConfig, DEFAULT_WORKING_DIR, DOCKER_ALIAS_HOME
-from lib.container import Container, Command
+from lib.config_container import ConfigContainer, Command
 from lib.volume import VolumeWithDriver, SimpleVolume
 from subprocess import Popen
 
@@ -31,37 +31,37 @@ class DockerUtil:
     quiet = False
     container_name = None
 
-    def exec_docker(self, container: Container, command: Command = None, attributes: List = None) -> int:
+    def exec_docker(self, config_container: ConfigContainer, command: Command = None, attributes: List = None) -> int:
         if attributes is None:
             attributes = []
-        container.image = self.handle_image(container)
-        self.remove_container(container)
-        self.create_volumes(container)
-        response_code = self.exec_docker_subprocess(container, command, attributes)
-        if not container.keep_volumes:
-            self.remove_volumes(container)
-        self.remove_container(container)
+        config_container.image = self.handle_image(config_container)
+        self.remove_container(config_container)
+        self.create_volumes(config_container)
+        response_code = self.exec_docker_subprocess(config_container, command, attributes)
+        if not config_container.keep_volumes:
+            self.remove_volumes(config_container)
+        self.remove_container(config_container)
         return response_code
 
-    def handle_image(self, container: Container) -> str:
-        if container.build:
-            image_name = self.get_image_name(container)
-            if not self.image_exists(container) or self.image_needs_rebuild(container):
-                self.build_image(container)
+    def handle_image(self, config_container: ConfigContainer) -> str:
+        if config_container.build:
+            image_name = self.get_image_name(config_container)
+            if not self.image_exists(config_container) or self.image_needs_rebuild(config_container):
+                self.build_image(config_container)
         else:
-            image_name = container.image
-            if not self.external_image_exists(container):
-                self.pull_image(container)
+            image_name = config_container.image
+            if not self.external_image_exists(config_container):
+                self.pull_image(config_container)
         return image_name
 
-    def image_needs_rebuild(self, container: Container) -> bool:
-        if not container.build.context.startswith('.'):
+    def image_needs_rebuild(self, config_container: ConfigContainer) -> bool:
+        if not config_container.build.context.startswith('.'):
             return False
 
-        if not container.auto_rebuild_images:
+        if not config_container.auto_rebuild_images:
             return False
 
-        image_name = self.get_image_name(container)
+        image_name = self.get_image_name(config_container)
 
         config = INIConfig().get_config()
         existing_hash = None
@@ -70,30 +70,30 @@ class DockerUtil:
         if not existing_hash:
             return True
 
-        if existing_hash != self.hash_docker_build_dir(container):
+        if existing_hash != self.hash_docker_build_dir(config_container):
             return True
         return False
 
-    def image_exists(self, container: Container) -> bool:
-        image_name = self.get_image_name(container)
+    def image_exists(self, config_container: ConfigContainer) -> bool:
+        image_name = self.get_image_name(config_container)
         for image in self.client.images.list(all=True):
             if image_name in image.tags:
                 return True
         return False
 
-    def external_image_exists(self, container: Container) -> bool:
-        image_name = container.image
+    def external_image_exists(self, config_container: ConfigContainer) -> bool:
+        image_name = config_container.image
         for image in self.client.images.list(all=True):
             if image_name in image.tags:
                 return True
         return False
 
-    def pull_image(self, container: Container):
+    def pull_image(self, config_container: ConfigContainer):
         wait_animation = animation.Wait(clock)
-        if not self.quiet and not container.quiet:
+        if not self.quiet and not config_container.quiet:
             wait_animation.start()
-            print('Pulling Image ' + container.image)
-        image_name = container.image
+            print('Pulling Image ' + config_container.image)
+        image_name = config_container.image
         parts = image_name.split(':')
         if len(parts) > 1:
             self.client.images.pull(parts[0], parts[1])
@@ -102,18 +102,18 @@ class DockerUtil:
         self.client.images.pull(image_name)
         wait_animation.stop()
 
-    def build_image(self, container: Container):
+    def build_image(self, config_container: ConfigContainer):
         wait_animation = animation.Wait(clock)
-        image_name = self.get_image_name(container)
-        if not self.quiet and not container.quiet:
+        image_name = self.get_image_name(config_container)
+        if not self.quiet and not config_container.quiet:
             wait_animation.start()
             print('Building Image ' + image_name)
-        context = self.get_image_context(container)
+        context = self.get_image_context(config_container)
         try:
             self.client.images.build(
                 tag=image_name,
                 path=context,
-                dockerfile=os.path.join(context, container.build.dockerfile),
+                dockerfile=os.path.join(context, config_container.build.dockerfile),
                 rm=True
             )
         except Exception as e:
@@ -122,44 +122,44 @@ class DockerUtil:
         config = INIConfig().get_config()
         if not config.has_section('ImageBuildHashes'):
             config.add_section('ImageBuildHashes')
-        config.set('ImageBuildHashes', image_name.replace(':', '_'), self.hash_docker_build_dir(container))
+        config.set('ImageBuildHashes', image_name.replace(':', '_'), self.hash_docker_build_dir(config_container))
         INIConfig().save_config(config)
         wait_animation.stop()
 
-    def get_image_name(self, container: Container) -> str:
+    def get_image_name(self, config_container: ConfigContainer) -> str:
         return self.image_name_pattern.format(
-            fs_location_hash=container.fs_location_hash,
-            container_name=container.name,
+            fs_location_hash=config_container.fs_location_hash,
+            container_name=config_container.name,
         )
 
     @staticmethod
-    def get_image_context(container: Container) -> str:
-        context = container.build.context
-        if container.build.context == '.':
-            return container.fs_location
-        if container.build.context.startswith('./'):
-            return container.fs_location + context[2:]
-        if container.build.context.startswith('/'):
-            return container.build.context
+    def get_image_context(config_container: ConfigContainer) -> str:
+        context = config_container.build.context
+        if config_container.build.context == '.':
+            return config_container.fs_location
+        if config_container.build.context.startswith('./'):
+            return config_container.fs_location + context[2:]
+        if config_container.build.context.startswith('/'):
+            return config_container.build.context
 
-        return os.path.join(container.fs_location, context)
+        return os.path.join(config_container.fs_location, context)
 
-    def hash_docker_build_dir(self, container: Container):
-        context = self.get_image_context(container)
-        path = os.path.dirname(os.path.join(context, container.build.dockerfile))
+    def hash_docker_build_dir(self, config_container: ConfigContainer):
+        context = self.get_image_context(config_container)
+        path = os.path.dirname(os.path.join(context, config_container.build.dockerfile))
         return dirhash(path, 'md5')
 
-    def remove_container(self, container: Container):
-        container_name = self.get_container_name(container)
+    def remove_container(self, config_container: ConfigContainer):
+        container_name = self.get_container_name(config_container)
         for current_container in self.client.containers.list(all=True):
             if container_name == current_container.name:
                 current_container.remove()
 
-    def get_container_name(self, container: Container):
+    def get_container_name(self, config_container: ConfigContainer):
         if self.container_name is None:
             container_name = self.container_name_pattern.format(
-            fs_location_hash=container.fs_location_hash,
-            container_name=container.name,
+            fs_location_hash=config_container.fs_location_hash,
+            container_name=config_container.name,
             )
             count = 0
             for current_container in self.client.containers.list(all=True):
@@ -261,7 +261,7 @@ class DockerUtil:
 
     def build_command(
             self,
-            container: Container,
+            config_container: ConfigContainer,
             command: Command = None,
             attributes: List = None,
             _tty: bool = True
@@ -269,7 +269,7 @@ class DockerUtil:
         if attributes is None:
             attributes = []
 
-        internal_command = container.name
+        internal_command = config_container.name
         if command:
             internal_command = command.name
             if command.path:
@@ -280,27 +280,27 @@ class DockerUtil:
             'run',
             '--pid=host',
             '--rm',
-            '--name=' + self.get_container_name(container),
+            '--name=' + self.get_container_name(config_container),
         ]
         if _tty:
             cmd_base = cmd_base + ['-it']
-        cmd_base = cmd_base + self.build_docker_run_arguments(container)
-        cmd_base.append(container.image)
-        if container.inject_user_switcher:
+        cmd_base = cmd_base + self.build_docker_run_arguments(config_container)
+        cmd_base.append(config_container.image)
+        if config_container.inject_user_switcher:
             cmd_base = cmd_base + ['/switch_user']
         cmd_base.append(internal_command)
         return cmd_base + command.default_params + attributes
 
-    def build_docker_run_arguments(self, container: Container) -> List[str]:
+    def build_docker_run_arguments(self, config_container: ConfigContainer) -> List[str]:
         arguments = []
-        for volume in container.volumes:
+        for volume in config_container.volumes:
             volume_mount_pattern = '{source}:{target}'
             if isinstance(volume, VolumeWithDriver):
                 arguments.append('-v')
                 arguments.append(
                     volume_mount_pattern.format(
                         source=self.volume_name_pattern.format(
-                            fs_location_hash=container.fs_location_hash,
+                            fs_location_hash=config_container.fs_location_hash,
                             volume_name=volume.name
                         ),
                         target=volume.target
@@ -316,20 +316,20 @@ class DockerUtil:
                 )
 
         user_switcher_binary = os.path.join(DOCKER_ALIAS_HOME, 'switch_user')
-        if container.inject_user_switcher and os.path.isfile(user_switcher_binary):
+        if config_container.inject_user_switcher and os.path.isfile(user_switcher_binary):
             arguments.append('-v')
             arguments.append('{user_switcher_binary}:/switch_user'.format(user_switcher_binary=user_switcher_binary))
 
-        if container.entrypoint:
+        if config_container.entrypoint:
             arguments.append('--entrypoint')
-            arguments.append(container.entrypoint)
+            arguments.append(config_container.entrypoint)
 
-        if container.env_file:
+        if config_container.env_file:
             arguments.append('--env-file')
-            arguments.append(os.path.join(container.fs_location, container.env_file))
+            arguments.append(os.path.join(config_container.fs_location, config_container.env_file))
 
-        if container.environment:
-            for environment in container.environment:
+        if config_container.environment:
+            for environment in config_container.environment:
                 arguments.append('-e')
                 arguments.append(environment)
 
@@ -337,41 +337,41 @@ class DockerUtil:
         arguments.append("UID_HOST=" + str(os.getuid()))
 
         for network in self.client.networks.list():
-            if network.name == container.docker_compose_project_name + "_default":
+            if network.name == config_container.docker_compose_project_name + "_default":
                 arguments.append('--network')
                 arguments.append(network.name)
 
-        for network in container.networks:
+        for network in config_container.networks:
             if not network == 'default':
                 arguments.append('--network')
                 arguments.append(network)
 
-        for port in container.ports:
+        for port in config_container.ports:
             arguments.append('-p')
             arguments.append(port)
 
-        if not container.stay_in_root:
+        if not config_container.stay_in_root:
             arguments.append('-w')
-            arguments.append(self.calculate_path_segment(container))
-        elif container.working_dir:
+            arguments.append(self.calculate_path_segment(config_container))
+        elif config_container.working_dir:
             arguments.append('-w')
-            arguments.append(container.working_dir)
+            arguments.append(config_container.working_dir)
         else:
             arguments.append('-w')
             arguments.append(DEFAULT_WORKING_DIR)
 
-        if container.user:
+        if config_container.user:
             arguments.append('--user')
-            arguments.append(container.user)
+            arguments.append(config_container.user)
 
         return arguments
 
     @staticmethod
-    def calculate_path_segment(container: Container) -> str:
+    def calculate_path_segment(config_container: ConfigContainer) -> str:
         current_dir = os.getcwd()
-        root_dir = container.fs_location
+        root_dir = config_container.fs_location
         path_segment = current_dir.replace(root_dir, '').strip('/')
 
-        if container.working_dir:
-            return os.path.join(container.working_dir, path_segment)
+        if config_container.working_dir:
+            return os.path.join(config_container.working_dir, path_segment)
         return os.path.join(DEFAULT_WORKING_DIR, path_segment)

@@ -44,7 +44,7 @@ class DockerUtil:
         if config_container.build:
             image_name = self.get_image_name(config_container)
             if not self.image_exists(config_container) or self.image_needs_rebuild(config_container):
-                self.build_image(config_container, False)
+                self.build_image(config_container)
         else:
             image_name = config_container.image
             if not self.external_image_exists(config_container):

@@ -47,7 +47,7 @@ class DockerUtil:
         if config_container.build:
             image_name = self.get_image_name(config_container)
             if not self.image_exists(config_container) or self.image_needs_rebuild(config_container):
-                self.build_image(config_container)
+                self.build_image(config_container, False)
         else:
             image_name = config_container.image
             if not self.external_image_exists(config_container):
@@ -102,29 +102,40 @@ class DockerUtil:
         self.client.images.pull(image_name)
         wait_animation.stop()
 
-    def build_image(self, config_container: ConfigContainer):
+    def build_image(self, config_container: ConfigContainer, verbose: bool):
         wait_animation = animation.Wait(clock)
         image_name = self.get_image_name(config_container)
         if not self.quiet and not config_container.quiet:
-            wait_animation.start()
+            if not verbose:
+                wait_animation.start()
             print('Building Image ' + image_name)
         context = self.get_image_context(config_container)
+        low_level_api = self.client.api
+
         try:
-            self.client.images.build(
+            output_streamer = low_level_api.build(
+                decode=True,
                 tag=image_name,
                 path=context,
                 dockerfile=os.path.join(context, config_container.build.dockerfile),
-                rm=True
+                rm=True,
+                nocache=True
             )
+            for chunk in output_streamer:
+                if verbose and 'stream' in chunk:
+                    for line in chunk['stream'].splitlines():
+                        print(line.strip('\n'))
+
+            config = INIConfig().get_config()
+            if not config.has_section('ImageBuildHashes'):
+                config.add_section('ImageBuildHashes')
+            config.set('ImageBuildHashes', image_name.replace(':', '_'), self.hash_docker_build_dir(config_container))
+            INIConfig().save_config(config)
         except Exception as e:
             wait_animation.stop()
             print(e)
-        config = INIConfig().get_config()
-        if not config.has_section('ImageBuildHashes'):
-            config.add_section('ImageBuildHashes')
-        config.set('ImageBuildHashes', image_name.replace(':', '_'), self.hash_docker_build_dir(config_container))
-        INIConfig().save_config(config)
-        wait_animation.stop()
+        finally:
+            wait_animation.stop()
 
     def get_image_name(self, config_container: ConfigContainer) -> str:
         return self.image_name_pattern.format(

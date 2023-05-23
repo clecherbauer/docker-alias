@@ -21,7 +21,7 @@ class DockerAliasCLI(object):
     run_description = 'Runs an command in an container'
     build_description = 'Builds container-images'
     usage = '''
-docker-alias <command> [<args>]
+docker-alias <command> [<args>] [--verbose]
 
 Available Commands:
    add      {add_description}
@@ -161,16 +161,23 @@ Version: {version}
         config_container_util = ConfigContainerUtil()
         parser = argparse.ArgumentParser(description=self.build_description)
         parser.add_argument('container')
+        parser.add_argument(
+            '--verbose',
+            default=False,
+            action='store_true',
+            help='shows output of docker build'
+        )
         args = parser.parse_args(sys.argv[2:])
+        verbose = args.verbose
         if args.container == 'all':
             for config_container in config_container_util.resolve_config_containers():
                 if config_container.build:
-                    DockerUtil(self.quiet).build_image(config_container)
+                    DockerUtil(self.quiet).build_image(config_container, verbose)
 
         else:
             for config_container in config_container_util.resolve_config_containers():
                 if config_container.build and config_container.name == args.container:
-                    DockerUtil(self.quiet).build_image(config_container)
+                    DockerUtil(self.quiet).build_image(config_container, verbose)
 
 
 if __name__ == '__main__':
@@ -178,3 +185,6 @@ if __name__ == '__main__':
         DockerAliasCLI()
     except KeyboardInterrupt:
         pass
+    finally:
+        if sys.stdout.isatty():
+            print("\033c")

@@ -7,7 +7,6 @@ import termios
 import tty
 from typing import List
 
-import animation
 import docker
 from checksumdir import dirhash
 
@@ -15,8 +14,6 @@ from lib.config import INIConfig, DEFAULT_WORKING_DIR, DOCKER_ALIAS_HOME
 from lib.config_container import ConfigContainer, Command
 from lib.volume import VolumeWithDriver, SimpleVolume
 from subprocess import Popen
-
-clock = ['-', '\\', '|', '/']
 
 
 class DockerUtil:
@@ -89,25 +86,20 @@ class DockerUtil:
         return False
 
     def pull_image(self, config_container: ConfigContainer):
-        wait_animation = animation.Wait(clock)
         if not self.quiet and not config_container.quiet:
-            wait_animation.start()
             print('Pulling Image ' + config_container.image)
         image_name = config_container.image
         parts = image_name.split(':')
         if len(parts) > 1:
-            self.client.images.pull(parts[0], parts[1])
-            wait_animation.stop()
+            output_streamer = self.client.api.pull(parts[0], parts[1])
+            self.loop_stream(output_streamer, not self.quiet)
             return
-        self.client.images.pull(image_name)
-        wait_animation.stop()
+        output_streamer = self.client.api.pull(image_name)
+        self.loop_stream(output_streamer, not self.quiet)
 
-    def build_image(self, config_container: ConfigContainer, verbose: bool):
-        wait_animation = animation.Wait(clock)
+    def build_image(self, config_container: ConfigContainer):
         image_name = self.get_image_name(config_container)
         if not self.quiet and not config_container.quiet:
-            if not verbose:
-                wait_animation.start()
             print('Building Image ' + image_name)
         context = self.get_image_context(config_container)
         low_level_api = self.client.api
@@ -121,10 +113,7 @@ class DockerUtil:
                 rm=True,
                 nocache=True
             )
-            for chunk in output_streamer:
-                if verbose and 'stream' in chunk:
-                    for line in chunk['stream'].splitlines():
-                        print(line.strip('\n'))
+            self.loop_stream(output_streamer, not self.quiet)
 
             config = INIConfig().get_config()
             if not config.has_section('ImageBuildHashes'):
@@ -132,10 +121,7 @@ class DockerUtil:
             config.set('ImageBuildHashes', image_name.replace(':', '_'), self.hash_docker_build_dir(config_container))
             INIConfig().save_config(config)
         except Exception as e:
-            wait_animation.stop()
             print(e)
-        finally:
-            wait_animation.stop()
 
     def get_image_name(self, config_container: ConfigContainer) -> str:
         return self.image_name_pattern.format(
@@ -386,3 +372,10 @@ class DockerUtil:
         if config_container.working_dir:
             return os.path.join(config_container.working_dir, path_segment)
         return os.path.join(DEFAULT_WORKING_DIR, path_segment)
+
+    @staticmethod
+    def loop_stream(streamer, verbose: bool):
+        for chunk in streamer:
+            if verbose and 'stream' in chunk:
+                for line in chunk['stream'].splitlines():
+                    print(line.strip('\n'))

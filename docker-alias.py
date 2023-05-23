@@ -1,6 +1,7 @@
 import argparse
 import os.path
 import sys
+import termios
 
 from lib.config import INIConfig, YAML_CONFIG_FILE_NAME, INI_CONFIG_FILE_PATH, VERSION
 from lib.docker_util import DockerUtil
@@ -161,23 +162,16 @@ Version: {version}
         config_container_util = ConfigContainerUtil()
         parser = argparse.ArgumentParser(description=self.build_description)
         parser.add_argument('container')
-        parser.add_argument(
-            '--verbose',
-            default=False,
-            action='store_true',
-            help='shows output of docker build'
-        )
         args = parser.parse_args(sys.argv[2:])
-        verbose = args.verbose
         if args.container == 'all':
             for config_container in config_container_util.resolve_config_containers():
                 if config_container.build:
-                    DockerUtil(self.quiet).build_image(config_container, verbose)
+                    DockerUtil(self.quiet).build_image(config_container)
 
         else:
             for config_container in config_container_util.resolve_config_containers():
                 if config_container.build and config_container.name == args.container:
-                    DockerUtil(self.quiet).build_image(config_container, verbose)
+                    DockerUtil(self.quiet).build_image(config_container)
 
 
 if __name__ == '__main__':
@@ -185,6 +179,3 @@ if __name__ == '__main__':
         DockerAliasCLI()
     except KeyboardInterrupt:
         pass
-    finally:
-        if sys.stdout.isatty():
-            print("\033c")

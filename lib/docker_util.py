@@ -361,6 +361,9 @@ class DockerUtil:
             arguments.append('--user')
             arguments.append(config_container.user)
 
+        if config_container.privileged:
+            arguments.append('--privileged')
+
         return arguments
 
     @staticmethod

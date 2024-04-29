@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-VERSION="v2.4.2"
+VERSION="v.2.4.3"
 SOURCE_FILE="docker-alias.linux64.zip"
 SOURCE_DIR="docker-alias"
 

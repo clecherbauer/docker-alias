@@ -48,6 +48,7 @@ class ConditionalConfigContainer:
 class ConfigContainer(AbstractConfigContainer):
     auto_rebuild_images: bool
     image: str
+    privileged: bool
     build: Build
     commands: List[Command]
     docker_compose_project_name: str
@@ -99,6 +100,7 @@ class ConfigContainerUtil:
 
             config_container = ConfigContainer(
                 auto_rebuild_images=bool(config.get('auto_rebuild_images', True)),
+                privileged=bool(config.get('privileged', True)),
                 build=build,
                 commands=self.build_commands(config),
                 docker_compose_project_name=docker_compose_project_name,

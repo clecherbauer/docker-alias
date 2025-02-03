@@ -89,7 +89,7 @@ class DockerUtil:
         if not self.quiet and not config_container.quiet:
             print('Pulling Image ' + config_container.image)
         image_name = config_container.image
-        parts = image_name.split(':')
+        parts = image_name.rsplit(":", 1)
         if len(parts) > 1:
             output_streamer = self.client.api.pull(parts[0], parts[1])
             self.loop_stream(output_streamer, not self.quiet)

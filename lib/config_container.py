@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 from copy import copy
 from dataclasses import dataclass
 from typing import List
@@ -96,7 +97,7 @@ class ConfigContainerUtil:
             fs_location = os.path.dirname(os.path.realpath(yaml_config.path))
             fs_location_hash = int(hashlib.sha1(fs_location.encode('utf-8')).hexdigest(), 16) % (10 ** 8)
 
-            docker_compose_project_name = os.path.basename(fs_location)
+            docker_compose_project_name = base_cleaned = re.split(r"[-_]", os.path.basename(fs_location))[0]
 
             config_container = ConfigContainer(
                 auto_rebuild_images=bool(config.get('auto_rebuild_images', True)),

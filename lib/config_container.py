@@ -241,7 +241,21 @@ class ConfigContainerUtil:
             config_container: ConfigContainer,
             conditional_config_container: ConditionalConfigContainer
     ) -> ConfigContainer:
-        for attribute_name, attribute_value in conditional_config_container.overwrite.items():
-            if attribute_value:
-                config_container.__setattr__(attribute_name, attribute_value)
+        for attr, new_value in conditional_config_container.overwrite.items():
+            if new_value is None:
+                continue
+            current_value = getattr(config_container, attr, None)
+            if isinstance(current_value, dict) and isinstance(new_value, dict):
+                merged = copy.deepcopy(current_value)
+                for key, val in new_value.items():
+                    if key in merged and isinstance(merged[key], dict) and isinstance(val, dict):
+                        merged[key].update(val)
+                    else:
+                        merged[key] = val
+                setattr(config_container, attr, merged)
+            elif isinstance(current_value, list) and isinstance(new_value, list):
+                merged = current_value + new_value
+                setattr(config_container, attr, merged)
+            else:
+                setattr(config_container, attr, new_value)
         return config_container

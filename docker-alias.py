@@ -4,8 +4,8 @@ import sys
 import termios
 
 from lib.config import INIConfig, YAML_CONFIG_FILE_NAME, INI_CONFIG_FILE_PATH, VERSION
-from lib.docker_util import DockerUtil
 from lib.config_container import ConfigContainerUtil
+from lib.fake_binary import FakeBinaryManager, collect_defined_fake_binaries
 
 
 class DockerAliasCLI(object):
@@ -21,12 +21,16 @@ class DockerAliasCLI(object):
     list_description = 'List all containers and their commands'
     run_description = 'Runs an command in an container'
     build_description = 'Builds container-images'
+    disable_description = 'Disables docker-alias'
+    enable_description = 'Enables docker-alias'
     usage = '''
 docker-alias <command> [<args>] [--verbose]
 
 Available Commands:
    add      {add_description}
    build    {build_description} [ all || <container_name> ]
+   disable  {disable_description}
+   enable   {enable_description}
    list     {list_description}
    remove   {remove_description}
    run      {run_description} [ <container_name> || <command_name> ]
@@ -42,6 +46,8 @@ Version: {version}
             usage=self.usage.format(
                 add_description=self.add_description,
                 build_description=self.build_description,
+                disable_description=self.disable_description,
+                enable_description=self.enable_description,
                 list_description=self.list_description,
                 remove_description=self.remove_description,
                 run_description=self.run_description,
@@ -106,6 +112,8 @@ Version: {version}
         print('Removed ' + path + ' from config.ini')
 
     def list(self):
+        from lib.docker_util import DockerUtil
+
         config_container_util = ConfigContainerUtil()
         argparse.ArgumentParser(description=self.list_description)
 
@@ -131,6 +139,8 @@ Version: {version}
             print(key + ": " + cmd + "\n")
 
     def run(self):
+        from lib.docker_util import DockerUtil
+
         config_container_util = ConfigContainerUtil()
         parser = argparse.ArgumentParser(description=self.run_description, add_help=False)
         args, unknown = parser.parse_known_args(sys.argv[2:])
@@ -159,6 +169,8 @@ Version: {version}
             sys.exit(1)
 
     def build(self):
+        from lib.docker_util import DockerUtil
+
         config_container_util = ConfigContainerUtil()
         parser = argparse.ArgumentParser(description=self.build_description)
         parser.add_argument('container')
@@ -172,6 +184,19 @@ Version: {version}
             for config_container in config_container_util.resolve_config_containers():
                 if config_container.build and config_container.name == args.container:
                     DockerUtil(self.quiet).build_image(config_container)
+
+    def disable(self):
+        argparse.ArgumentParser(description=self.disable_description).parse_args(sys.argv[2:])
+        self.ini_config.set_enabled(False)
+        FakeBinaryManager().remove_all()
+        print('docker-alias has been disabled')
+
+    def enable(self):
+        argparse.ArgumentParser(description=self.enable_description).parse_args(sys.argv[2:])
+        self.ini_config.set_enabled(True)
+        defined_fake_binaries = collect_defined_fake_binaries(self.ini_config)
+        FakeBinaryManager().sync(defined_fake_binaries)
+        print('docker-alias has been enabled')
 
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ from typing import List
 
 import yaml
 
-VERSION = 'v2.4.7'
+VERSION = 'v2.4.8'
 YAML_CONFIG_FILE_NAME = 'docker-alias.yml'
 INI_CONFIG_FILE_NAME = 'config.ini'
 DOCKER_ALIAS_HOME = os.path.join(str(Path.home()), '.local', 'docker-alias')
@@ -19,6 +19,8 @@ DEFAULT_WORKING_DIR = '/app'
 
 class INIConfig:
     yml_section_name = 'YamlPaths'
+    settings_section_name = 'Settings'
+    enabled_option_name = 'enabled'
 
     @staticmethod
     def get_config_dir():
@@ -74,6 +76,21 @@ class INIConfig:
         with open(self.get_config_file_path(), 'w') as file:
             config.write(file)
             file.close()
+
+    def is_enabled(self) -> bool:
+        config = self.get_config()
+        if not config.has_section(self.settings_section_name):
+            return True
+        if not config.has_option(self.settings_section_name, self.enabled_option_name):
+            return True
+        return config.getboolean(self.settings_section_name, self.enabled_option_name, fallback=True)
+
+    def set_enabled(self, enabled: bool) -> None:
+        config = self.get_config()
+        if not config.has_section(self.settings_section_name):
+            config.add_section(self.settings_section_name)
+        config.set(self.settings_section_name, self.enabled_option_name, 'true' if enabled else 'false')
+        self.save_config(config)
 
 
 @dataclass

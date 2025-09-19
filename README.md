@@ -1,208 +1,70 @@
 # docker-alias
-Enables you to use docker-containers to execute commands as if they are installed on your system.
+Run containerised tooling as if it were installed natively.
 
-### Features:
-- injectable user-switcher (No more permission problems! Adds a user with the same id as the executing user or modifies a present user and moves it ids)
-- variables to allow some dynamic
-- auto-image-rebuild
-- a docker-compose like configuration
+`docker-alias` manages small helper binaries that forward every invocation into a Docker container. The project keeps your host clean, provides reproducible environments and handles user/permission issues so that containerised tools feel native.
 
-### Requirements:
-- docker
-- systemd
-- lebokus/bindfs:latest (optional)
+## Highlights
+- One command per tool: map frequently-used commands to dedicated containers and run them like local binaries
+- Automatic user handling: optionally inject a user-switcher so files created in containers match your host permissions
+- Config-driven workflow: describe containers, volumes, and overrides in a YAML file; reloads are handled by the daemon
+- Smart image management: rebuild images when Dockerfiles change, or opt-out per container when you manage images yourself
+- Shell-friendly: `$PATH` integration through generated shim binaries, support for per-command defaults, environment files, and conditional overrides
 
-### Installation
-`wget -q -O - "https://gitlab.com/clecherbauer/tools/docker-alias/-/raw/v2.4.8/linux/online-installer.sh" | bash`
+## Requirements
+- Docker Engine >= 20.x
+- Systemd (used by the installer to register the daemon)
 
-### Usage
-1. start docker-alias-daemon with `docker-alias-daemon start`
-2. create a new docker-alias.yml and define your volumes and containers / commands.
-For example:
+## Installation
+Choose the option that best matches your environment.
+
+### Online installer (recommended)
+```bash
+wget -q -O - "https://gitlab.com/clecherbauer/tools/docker-alias/-/raw/v2.4.8/linux/online-installer.sh" | bash
 ```
-containers:
-  node:
-    image: node
-    volumes:
-      - $YAML_LOCATION_DIR:$DEFAULT_WORKING_DIR
-      - $SSH_AUTH_SOCK:/ssh-auth.sock
-    commands:
-      - node
-      - npm
-    env_file: .env
-    environment:
-      - SSH_AUTH_SOCK=/ssh-auth.sock
-    user: $UID
+The script downloads the latest release, installs binaries under `~/.local/docker-alias`, links `docker-alias` and `docker-alias-daemon` into `~/.local/bin`, and amends your shell rc files so the generated shims are on `PATH`.
+
+### Install from source
+```bash
+git clone https://gitlab.com/clecherbauer/tools/docker-alias.git
+cd docker-alias/docker-alias
+./setup.sh install
 ```
-3. register your new docker-alias.yml with `docker-alias add`
-4. type in `node`
+This copies the project into `~/.local/docker-alias` and prepares the CLI/daemon just like the online installer.
 
-### YAML Configuration
-#### Volumes
-like docker-compose 
+### Upgrading or uninstalling
+- Re-run either installer to upgrade in place; existing configuration files are preserved.
+- Remove everything with `~/.local/docker-alias/setup.sh uninstall`.
 
-#### containers
-`
-auto_rebuild_images: bool | default true
-`
+## Getting Started
+1. **Start the daemon:** `docker-alias-daemon start` (add `--no-daemon` for foreground mode).
+2. **Create a configuration:** write a `docker-alias.yml` describing your containers and volumes (see [`docs/configuration-manual.md`](docs/configuration-manual.md)).
+3. **Register the configuration:** `docker-alias add` (optionally use `--path /path/to/docker-alias.yml`).
+4. **Verify commands:** `docker-alias list` prints all generated commands and their backing docker invocations.
+5. **Run your tooling:** execute the command name directly (for example `node` or `pyinstaller`). The generated shim forwards the call into the configured container.
 
-images dont get rebuild if content of Directory with Dockerfile changes when set to false
+## CLI reference
+- `docker-alias add [--path <file>]` – Register a `docker-alias.yml` so the daemon can generate shim binaries.
+- `docker-alias remove [--path <file>]` – Deregister a configuration file.
+- `docker-alias list` – Show all tool commands and their resolved docker run syntax.
+- `docker-alias run <container|command> [args…]` – Run a container or command once without needing the shim.
+- `docker-alias build [all|<container>]` – Trigger an image build for all or selected containers defined in the YAML file.
+- `docker-alias enable|disable` – Toggle generation of fake binaries without deleting configuration.
 
----
-`
-build: Build | optional
-`
-like docker-compose 
+The daemon accepts `start [--no-daemon]` and `stop`. On Linux the PID file defaults to `~/.config/docker-alias/docker-alias.pid` and can be overridden with `DOCKER_ALIAS_PID_FILE`.
 
----
-`
-commands: List[Command] | optional
-`
+## Configuration
+- `docker-alias.yml` files are discovered from the working directory upwards. Each registered file contributes containers and commands.
+- Global volumes, per-container volumes, networks, environment variables, command defaults, and conditional overrides are supported.
+- Variables such as `$YAML_LOCATION_DIR`, `$UID`, `$DEFAULT_WORKING_DIR`, and environment variables are interpolated before Docker sees the configuration.
 
-a list of commands within the container, if not set the container name is used as the main command
+A full breakdown of the YAML structure, available attributes, and advanced features lives in the [configuration manual](docs/configuration-manual.md).
 
----
-`
-entrypoint: str | optional
-`
+## Data locations
+- Shim binaries: `~/.local/docker-alias/bin`
+- CLI/daemon binaries: `~/.local/docker-alias`
+- Configuration & state: `~/.config/docker-alias`
 
-the entrypoint
+Keep these directories under version control or backup if you rely on customised defaults.
 
----
-`
-env_file: str | optional
-`
-
-the path to a env file
-
----
-`
-environment: List[str] | optional
-`
-
-a list of environment variables like in docker-compose 
-
----
-`
-image: str | optional
-`
-
-like docker-compose 
-
----
-`
-keep_volumes: bool | default false
-`
-
-volumes dont get removed after execution if set to true
-
----
-`
-post_exec_hook_command: str
-`
-
-not implemented yet
-
----
-`
-pre_exec_hook_command: str
-`
-
-not implemented yet
-
----
-`
-quiet: bool
-`
-
-only stdout and stderr from subcommand
-
----
-`
-stay_in_root: bool
-`
-
-not implemented yet
-
----
-`
-volumes: List[Volume]
-`
-
-like docker-compose 
-
----
-`
-working_dir: str
-`
-the working dir
-
----
-`
-user: str
-`
-
-the executing user
-
----
-`
-inject_user_switcher: bool
-`
-
-Often the `user` attribute is enough to archive file-changes with the same permissions as the executing user.
-But if that doesn't work for you  the `inject_user_switcher` could be a solution.
-
-If set to `true`, docker-alias mounts the user-switcher script as a volume and sets it as the main command.
-Keep in mind that `--entrypoint` runs fist if is set.
-
-This can help with some tools which rely on home directories or existing user.
-
-DISCLAIMER: This feature is currently only tested with debian based containers and requires the commands `id` `usermod` `groupmod` `useradd` `userdel` `mkdir` `find` `chown` `runuser` to be present.
-
-
-
-If you are on a linux host, take a look at [clecherbauer/docker-volume-bindfs](https://github.com/clecherbauer/docker-volume-bindfs), this is an alternative to switching users.
-
-Just add this volume
-```
-volumes:
-  bindfs:
-    driver: lebokus/bindfs:latest
-    driver_opts:
-      sourcePath: "$YAML_LOCATION_DIR"
-      map: "$UID/0:@$UID/@0"
-```
-and add the volume to your container
-```
-containers:
-  somecontainer:
-    volumes:
-      - bindfs:$DEFAULT_WORKING_DIR
-```
-
----
-`
-networks: List[str]
-`
-
-networks to attach. If a docker-compose default network is present it also gets attached.
-
----
-
-`
-ports: List[str]
-`
-
-ports to bind. https://docs.docker.com/config/containers/container-networking/
-
----
-
-## VARIABLES
-
-Following variables can be set in docker-alias.yml:
-
-- **`$YAML_LOCATION_DIR`**: the path to the nearest directory containing a docker-alias.yml
-
-- **`$DEFAULT_WORKING_DIR`**: /app
-
-- **`$UID`**: the id of the user executing docker-alias
+## Support & contributing
+Issues and merge requests are welcome. Start by opening an issue in the project repository with your scenario, environment information, and relevant YAML snippets.

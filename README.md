@@ -19,7 +19,7 @@ Choose the option that best matches your environment.
 
 ### Online installer (recommended)
 ```bash
-wget -q -O - "https://gitlab.com/clecherbauer/tools/docker-alias/-/raw/v2.4.8/linux/online-installer.sh" | bash
+wget -q -O - "https://gitlab.com/clecherbauer/tools/docker-alias/-/raw/v2.4.9/linux/online-installer.sh" | bash
 ```
 The script downloads the latest release, installs binaries under `~/.local/docker-alias`, links `docker-alias` and `docker-alias-daemon` into `~/.local/bin`, and amends your shell rc files so the generated shims are on `PATH`.
 
@@ -38,17 +38,17 @@ This copies the project into `~/.local/docker-alias` and prepares the CLI/daemon
 ## Getting Started
 1. **Start the daemon:** `docker-alias-daemon start` (add `--no-daemon` for foreground mode).
 2. **Create a configuration:** write a `docker-alias.yml` describing your containers and volumes (see [`docs/configuration-manual.md`](docs/configuration-manual.md)).
-3. **Register the configuration:** `docker-alias add` (optionally use `--path /path/to/docker-alias.yml`).
+3. **Register the configuration:** `docker-alias add` (optionally use `--path /path/to/docker-alias.yml`). Shim binaries are generated immediately.
 4. **Verify commands:** `docker-alias list` prints all generated commands and their backing docker invocations.
 5. **Run your tooling:** execute the command name directly (for example `node` or `pyinstaller`). The generated shim forwards the call into the configured container.
 
 ## CLI reference
-- `docker-alias add [--path <file>]` – Register a `docker-alias.yml` so the daemon can generate shim binaries.
-- `docker-alias remove [--path <file>]` – Deregister a configuration file.
+- `docker-alias add [--path <file>]` – Register a `docker-alias.yml` and generate shim binaries immediately.
+- `docker-alias remove [--path <file>]` – Deregister a configuration file and prune its shim binaries.
 - `docker-alias list` – Show all tool commands and their resolved docker run syntax.
 - `docker-alias run <container|command> [args…]` – Run a container or command once without needing the shim.
 - `docker-alias build [all|<container>]` – Trigger an image build for all or selected containers defined in the YAML file.
-- `docker-alias enable|disable` – Toggle generation of fake binaries without deleting configuration.
+- `docker-alias enable|disable` – Toggle generation of shim binaries without deleting configuration.
 
 The daemon accepts `start [--no-daemon]` and `stop`. On Linux the PID file defaults to `~/.config/docker-alias/docker-alias.pid` and can be overridden with `DOCKER_ALIAS_PID_FILE`.
 

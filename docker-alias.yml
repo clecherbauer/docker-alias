@@ -1,10 +1,9 @@
 volumes:
-  shared-cache:
-    driver: local
+  bindfs:
+    driver: lebokus/bindfs:latest
     driver_opts:
-      type: none
-      device: "/tmp/docker-alias-cache"
-      o: bind
+      sourcePath: "$YAML_LOCATION_DIR"
+      map: "$UID/0:@$UID/@0"
 
 
 containers:
@@ -13,7 +12,6 @@ containers:
     volumes:
      - $YAML_LOCATION_DIR:$DEFAULT_WORKING_DIR
      - $SSH_AUTH_SOCK:/ssh-auth.sock
-     - shared-cache:/cache
     commands:
       - python
       - pip3
@@ -29,7 +27,7 @@ containers:
   pyinstaller-windows:
     image: registry.gitlab.com/clecherbauer/docker-images/pyinstaller-windows:python-3.8-ubuntu-20.04
     volumes:
-     - shared-cache:$DEFAULT_WORKING_DIR
+     - bindfs:$DEFAULT_WORKING_DIR
     commands:
       - pyinstaller-windows
     environment:

@@ -8,7 +8,7 @@ import daemoniker
 from psutil import pid_exists
 
 from lib.config import INIConfig
-from lib.fake_binary import FakeBinaryManager, collect_defined_fake_binaries
+from lib.shim_binary import ShimBinaryManager, collect_defined_shim_binaries
 
 DEFAULT_PID_FILE = os.path.join(INIConfig().get_config_dir(), "docker-alias.pid")
 
@@ -19,7 +19,7 @@ def get_pid_file() -> str:
 
 class Daemon:
     def __init__(self) -> None:
-        self._fake_binary_manager = FakeBinaryManager()
+        self._shim_binary_manager = ShimBinaryManager()
 
     def run(self) -> None:
         while True:
@@ -27,16 +27,16 @@ class Daemon:
                 ini_config = INIConfig()
 
                 if not ini_config.is_enabled():
-                    self._fake_binary_manager.remove_all()
+                    self._shim_binary_manager.remove_all()
                     time.sleep(10)
                     continue
 
-                defined_fake_binaries = collect_defined_fake_binaries(ini_config)
-                self._fake_binary_manager.sync(defined_fake_binaries)
+                defined_shim_binaries = collect_defined_shim_binaries(ini_config)
+                self._shim_binary_manager.sync(defined_shim_binaries)
 
                 if not ini_config.is_enabled():
                     # Handle case where configuration toggled while syncing
-                    self._fake_binary_manager.remove_all()
+                    self._shim_binary_manager.remove_all()
                     continue
                 time.sleep(10)
             except Exception:

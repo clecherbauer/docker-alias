@@ -1,11 +1,11 @@
 import os
 from typing import Iterable, List, Optional, Set
 
-from lib.config import FAKE_BINARY_DIR, INIConfig, YAMLConfigUtil
+from lib.config import SHIM_BINARY_DIR, INIConfig, YAMLConfigUtil
 
 
-class FakeBinaryManager:
-    def __init__(self, root_path: str = FAKE_BINARY_DIR) -> None:
+class ShimBinaryManager:
+    def __init__(self, root_path: str = SHIM_BINARY_DIR) -> None:
         self._root_path = root_path
 
     def get_root_path(self) -> str:
@@ -44,27 +44,27 @@ class FakeBinaryManager:
             os.remove(file_path)
 
     def remove_all(self) -> None:
-        for fake_binary in self.list_binaries():
-            self.remove(fake_binary)
+        for shim_binary in self.list_binaries():
+            self.remove(shim_binary)
 
-    def sync(self, defined_fake_binaries: Iterable[str]) -> None:
+    def sync(self, defined_shim_binaries: Iterable[str]) -> None:
         normalized_defined: Set[str] = {
             self._normalize_name(name)
-            for name in defined_fake_binaries
+            for name in defined_shim_binaries
             if self._normalize_name(name)
         }
         existing = set(self.list_binaries())
-        for fake_binary in existing - normalized_defined:
-            self.remove(fake_binary)
-        for fake_binary in normalized_defined:
-            self.create(fake_binary)
+        for shim_binary in existing - normalized_defined:
+            self.remove(shim_binary)
+        for shim_binary in normalized_defined:
+            self.create(shim_binary)
 
 
-def collect_defined_fake_binaries(ini_config: Optional[INIConfig] = None) -> List[str]:
+def collect_defined_shim_binaries(ini_config: Optional[INIConfig] = None) -> List[str]:
     ini_config = ini_config or INIConfig()
     yaml_paths = ini_config.get_yaml_paths()
     yaml_config_util = YAMLConfigUtil()
-    defined_fake_binaries: List[str] = []
+    defined_shim_binaries: List[str] = []
     for yml_path in yaml_paths:
         if not os.path.isfile(yml_path):
             continue
@@ -80,9 +80,9 @@ def collect_defined_fake_binaries(ini_config: Optional[INIConfig] = None) -> Lis
             if commands:
                 for command in commands:
                     if isinstance(command, dict):
-                        defined_fake_binaries.append(list(command.keys())[0])
+                        defined_shim_binaries.append(list(command.keys())[0])
                     else:
-                        defined_fake_binaries.append(command)
+                        defined_shim_binaries.append(command)
             else:
-                defined_fake_binaries.append(container_key)
-    return defined_fake_binaries
+                defined_shim_binaries.append(container_key)
+    return defined_shim_binaries

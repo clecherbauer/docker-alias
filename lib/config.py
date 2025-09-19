@@ -7,11 +7,11 @@ from typing import List
 
 import yaml
 
-VERSION = 'v2.4.8'
+VERSION = 'v2.4.9'
 YAML_CONFIG_FILE_NAME = 'docker-alias.yml'
 INI_CONFIG_FILE_NAME = 'config.ini'
 DOCKER_ALIAS_HOME = os.path.join(str(Path.home()), '.local', 'docker-alias')
-FAKE_BINARY_DIR = os.path.join(DOCKER_ALIAS_HOME, 'bin')
+SHIM_BINARY_DIR = os.path.join(DOCKER_ALIAS_HOME, 'bin')
 INI_CONFIG_DIR = os.path.join(str(Path.home()), '.config', 'docker-alias')
 INI_CONFIG_FILE_PATH = os.path.join(INI_CONFIG_DIR, INI_CONFIG_FILE_NAME)
 DEFAULT_WORKING_DIR = '/app'
@@ -60,7 +60,7 @@ class INIConfig:
         new_path_list = []
         for _path in path_list:
             if not _path == path:
-                new_path_list.append(path)
+                new_path_list.append(_path)
         self.save_path_list(new_path_list)
 
     def save_path_list(self, path_list: List[str]):

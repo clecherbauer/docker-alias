@@ -5,7 +5,7 @@ import termios
 
 from lib.config import INIConfig, YAML_CONFIG_FILE_NAME, INI_CONFIG_FILE_PATH, VERSION
 from lib.config_container import ConfigContainerUtil
-from lib.fake_binary import FakeBinaryManager, collect_defined_fake_binaries
+from lib.shim_binary import ShimBinaryManager, collect_defined_shim_binaries
 
 
 class DockerAliasCLI(object):
@@ -88,6 +88,7 @@ Version: {version}
             sys.exit(1)
 
         self.ini_config.add_yaml_path(path)
+        self.sync_shim_binaries()
         print('Added ' + path + ' to config.ini')
 
     def remove(self):
@@ -109,7 +110,12 @@ Version: {version}
             sys.exit(1)
 
         self.ini_config.remove_yaml_path(path)
+        self.sync_shim_binaries()
         print('Removed ' + path + ' from config.ini')
+
+    def sync_shim_binaries(self):
+        defined_shim_binaries = collect_defined_shim_binaries(self.ini_config)
+        ShimBinaryManager().sync(defined_shim_binaries)
 
     def list(self):
         from lib.docker_util import DockerUtil
@@ -188,14 +194,13 @@ Version: {version}
     def disable(self):
         argparse.ArgumentParser(description=self.disable_description).parse_args(sys.argv[2:])
         self.ini_config.set_enabled(False)
-        FakeBinaryManager().remove_all()
+        ShimBinaryManager().remove_all()
         print('docker-alias has been disabled')
 
     def enable(self):
         argparse.ArgumentParser(description=self.enable_description).parse_args(sys.argv[2:])
         self.ini_config.set_enabled(True)
-        defined_fake_binaries = collect_defined_fake_binaries(self.ini_config)
-        FakeBinaryManager().sync(defined_fake_binaries)
+        self.sync_shim_binaries()
         print('docker-alias has been enabled')
 
 
